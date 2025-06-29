@@ -3,15 +3,21 @@ import { Route, Routes } from 'react-router-dom'
 import './App.css'
 import Category_management from './admin/category_management.jsx'
 import React from 'react'
+import IndexPage from './pages/IndexPage.jsx'
+import LoginPage from './pages/LoginPage.jsx'
+import Layout from './Layout.jsx'
 
 function App() {
   
 
   return (
     <Routes>
-      <Route index element={<Category_management />} />
-
+      {/* <Route index element={<Category_management />} /> */}
       
+      <Route path="/" element={<Layout />}>
+        <Route index element={<IndexPage />} />
+        <Route path="/login" element={<LoginPage />} />
+      </Route>
     </Routes>
     
     )
