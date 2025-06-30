@@ -12,7 +12,7 @@ function App() {
 
   return (
     <Routes>
-      {/* <Route index element={<Category_management />} /> */}
+      { <Route path="/admin" element={<Category_management />} /> }
       
       <Route path="/" element={<Layout />}>
         <Route index element={<IndexPage />} />
