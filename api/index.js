@@ -12,12 +12,12 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB Connected'))
+  .then(() => console.log('MongoDB Connected to cake-shop database'))
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Schema
@@ -39,6 +39,28 @@ app.post('/categories', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to add category' });
+  }
+});
+
+// GET - Fetch All Categories
+app.get('/categories', async (req, res) => {
+  try {
+    const categories = await Category.find();
+    res.status(200).json(categories);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+// DELETE - Remove Category
+app.delete('/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Category.findByIdAndDelete(id);
+    res.status(200).json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to delete category' });
   }
 });
 
