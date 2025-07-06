@@ -24,10 +24,7 @@ app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 console.log('Attempting to connect to MongoDB...');
 console.log('MongoDB URI loaded:', process.env.MONGO_URI ? 'Yes' : 'No');
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB Connected to cake-shop database');
     console.log('Database:', mongoose.connection.db.databaseName);
