@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -85,12 +87,12 @@ export default function LoginPage() {
             </div>
 
             <div className="mt-6">
-              <button
-                type="button"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              <Link
+                to="/register"
+                className="w-full flex justify-center py-2 px-4 border border-primary rounded-md shadow-sm text-sm font-medium text-primary bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
               >
                 Sign up
-              </button>
+              </Link>
             </div>
           </div>
         </div>
