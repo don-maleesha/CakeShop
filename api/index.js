@@ -19,28 +19,56 @@ app.use(cors({
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 
-// MongoDB Connection
+// MongoDB Connection with retry logic
 console.log('Attempting to connect to MongoDB...');
 console.log('MongoDB URI loaded:', process.env.MONGO_URI ? 'Yes' : 'No');
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => {
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+      socketTimeoutMS: 45000, // 45 seconds timeout
+    });
+    
     console.log('✅ MongoDB Connected to cake-shop database');
     console.log('Database:', mongoose.connection.db.databaseName);
-  })
-  .catch(err => {
+    console.log('Host:', conn.connection.host);
+  } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);
     console.error('Error code:', err.code);
     console.error('Please check:');
     console.error('1. MongoDB Atlas credentials');
     console.error('2. Network connectivity');
-    console.error('3. IP whitelist in MongoDB Atlas');
-    process.exit(1);
-  });
+    console.error('3. IP whitelist in MongoDB Atlas (add 0.0.0.0/0 for testing)');
+    console.error('4. Cluster is running and not paused');
+    
+    // Retry connection after 5 seconds
+    console.log('Retrying connection in 5 seconds...');
+    setTimeout(connectDB, 5000);
+  }
+};
 
+connectDB();
+
+// MongoDB connection event listeners
+mongoose.connection.on('connected', () => {
+  console.log('🔗 Mongoose connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('🔥 Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('📡 Mongoose disconnected');
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await mongoose.connection.close();
+  console.log('📴 MongoDB connection closed through app termination');
+  process.exit(0);
+});
 
 // Schema
 const categorySchema = new mongoose.Schema({
