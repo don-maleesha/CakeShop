@@ -16,8 +16,8 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 
 // MongoDB Connection
 console.log('Attempting to connect to MongoDB...');
@@ -40,6 +40,7 @@ mongoose.connect(process.env.MONGO_URI, {
     console.error('3. IP whitelist in MongoDB Atlas');
     process.exit(1);
   });
+
 
 // Schema
 const categorySchema = new mongoose.Schema({
@@ -226,6 +227,9 @@ app.get('/register', (req, res) => {
     }
   });
 });
+
+// GET - Fetch
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
