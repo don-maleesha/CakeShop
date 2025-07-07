@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const User = require('./models/User');
+const Category = require('./models/Category');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 
@@ -39,36 +40,10 @@ const connectDB = async () => {
     console.error('Please check:');
     console.error('1. MongoDB Atlas credentials');
     console.error('2. Network connectivity');
-    console.error('3. IP whitelist in MongoDB Atlas (add 0.0.0.0/0 for testing)');
-    console.error('4. Cluster is running and not paused');
-    
-    // Retry connection after 5 seconds
-    console.log('Retrying connection in 5 seconds...');
-    setTimeout(connectDB, 5000);
-  }
-};
+    console.error('3. IP whitelist in MongoDB Atlas');
+    process.exit(1);
+  });
 
-connectDB();
-
-// MongoDB connection event listeners
-mongoose.connection.on('connected', () => {
-  console.log('🔗 Mongoose connected to MongoDB');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error('🔥 Mongoose connection error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log('📡 Mongoose disconnected');
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  await mongoose.connection.close();
-  console.log('📴 MongoDB connection closed through app termination');
-  process.exit(0);
-});
 
 // Schema
 const categorySchema = new mongoose.Schema({
@@ -182,8 +157,6 @@ app.post('/register', async(req, res) => {
   }
 });
 
-const Category = mongoose.model('Category', categorySchema);
-
 // POST - Add New Category
 app.post('/categories', async (req, res) => {
   try {
@@ -228,6 +201,55 @@ app.post('/categories', async (req, res) => {
   }
 });
 
+// GET - Fetch All Categories
+app.get('/categories', async (req, res) => {
+  try {
+    const categories = await Category.find();
+    res.status(200).json(categories);
+  } catch (error) {
+    console.error('Fetch categories error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch categories' 
+    });
+  }
+});
+
+// DELETE - Remove Category
+app.delete('/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid category ID format' 
+      });
+    }
+    
+    const deletedCategory = await Category.findByIdAndDelete(id);
+    
+    if (!deletedCategory) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Category not found' 
+      });
+    }
+    
+    res.status(200).json({ 
+      success: true,
+      message: 'Category deleted successfully' 
+    });
+  } catch (error) {
+    console.error('Delete category error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to delete category' 
+    });
+  }
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.json({ 
@@ -236,7 +258,8 @@ app.get('/', (req, res) => {
     endpoints: {
       'POST /register': 'User registration',
       'POST /categories': 'Add new category',
-      'GET /categories': 'Get all categories'
+      'GET /categories': 'Get all categories',
+      'DELETE /categories/:id': 'Remove category'
     }
   });
 });
