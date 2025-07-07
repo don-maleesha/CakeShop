@@ -1,22 +1,26 @@
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { IoAccessibility, IoBarChartSharp, IoBagCheck, IoFastFood } from "react-icons/io5";
+import { AiFillDashboard, AiFillHdd } from "react-icons/ai";
+import { HiUsers } from "react-icons/hi";
+import { HiLogout } from "react-icons/hi";
 
 function AdminLayout() {
   const location = useLocation();
 
   const navItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: '📊' },
-    { name: 'Products', path: '/admin/products', icon: '📦' },
-    { name: 'Orders', path: '/admin/orders', icon: '🧾' },
-    { name: 'Categories', path: '/admin/categories', icon: '🏷️' },
-    { name: 'Analytics', path: '/admin/analytics', icon: '📈' },
-    { name: 'Users', path: '/admin/users', icon: '👥' },
+    { name: 'Dashboard', path: '/admin/dashboard', icon: <AiFillDashboard /> },
+    { name: 'Products', path: '/admin/products', icon: <IoBagCheck /> },
+    { name: 'Orders', path: '/admin/orders', icon: <IoFastFood /> },
+    { name: 'Categories', path: '/admin/categories', icon: <AiFillHdd /> },
+    { name: 'Analytics', path: '/admin/analytics', icon: <IoBarChartSharp /> },
+    { name: 'Users', path: '/admin/users', icon: <HiUsers /> },
   ];
 
   return (
     <div className="flex min-h-screen bg-white">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r p-6">
+      <aside className="w-64 bg-white border-r p-6 flex flex-col">
         <h2 className="text-2xl font-bold mb-10">Admin Panel</h2>
         <nav className="space-y-2">
           {navItems.map((item) => (
@@ -31,12 +35,33 @@ function AdminLayout() {
               {item.name}
             </Link>
           ))}
+          
+          {/* Modern Logout Button - positioned after navigation items */}
+          <div className="pt-4">
+            <button className="flex items-center justify-center px-4 py-3 text-white bg-red-500 hover:bg-red-600 rounded-lg w-full transition-colors duration-200 font-medium shadow-sm">
+              <HiLogout className="mr-2 text-lg" />
+              Logout
+            </button>
+          </div>
         </nav>
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1 p-6 bg-gray-50">
-        <Outlet />
+      <main className="flex-1 bg-gray-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-semibold text-gray-800">Hi Admin 👋</h1>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Welcome back!</span>
+            </div>
+          </div>
+        </header>
+        
+        {/* Content */}
+        <div className="p-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
