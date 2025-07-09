@@ -431,6 +431,85 @@ app.delete('/categories/:id', checkDBConnection, async (req, res) => {
   }
 });
 
+// GET - Fetch All Users
+app.get('/users', async (req, res) => {
+  try {
+    const users = await User.find().select('-password'); // Exclude password from response
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('Fetch users error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch users' 
+    });
+  }
+});
+
+// GET - Fetch User by ID
+app.get('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid user ID format' 
+      });
+    }
+    
+    const user = await User.findById(id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
+    }
+    
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Fetch user error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch user' 
+    });
+  }
+});
+
+// DELETE - Remove User
+app.delete('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid user ID format' 
+      });
+    }
+    
+    const deletedUser = await User.findByIdAndDelete(id);
+    
+    if (!deletedUser) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
+    }
+    
+    res.status(200).json({ 
+      success: true,
+      message: 'User deleted successfully' 
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to delete user' 
+    });
+  }
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.json({ 
@@ -440,7 +519,10 @@ app.get('/', (req, res) => {
       'POST /register': 'User registration',
       'POST /categories': 'Add new category',
       'GET /categories': 'Get all categories',
-      'DELETE /categories/:id': 'Remove category'
+      'DELETE /categories/:id': 'Remove category',
+      'GET /users': 'Get all users',
+      'GET /users/:id': 'Get user by ID',
+      'DELETE /users/:id': 'Remove user'
     }
   });
 });

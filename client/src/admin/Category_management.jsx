@@ -203,7 +203,7 @@ function Category_management() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Please Wait...</p>
+          <p className="text-gray-600 text-lg">Loading Dashboard...</p>
         </div>
       </div>
     );
@@ -217,7 +217,10 @@ function Category_management() {
           onClick={handleAddCategory}
           className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center gap-2 transform hover:scale-105 transition-all duration-200 hover:shadow-lg"
         >
-          <span>+</span> Add Category
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z M12 15.4l3.76 1.98-.71-4.18 3.04-2.97-4.19-.61L12 5.8 10.1 9.62l-4.19.61 3.04 2.97-.71 4.18L12 15.4z"/>
+          </svg>
+          Add Category
         </button>
       </div>
 
