@@ -245,7 +245,8 @@ app.post('/login', checkDBConnection, async (req, res) => {
         jwt.sign({
           email: userDoc.email,
           id: userDoc._id,
-          name: userDoc.name
+          name: userDoc.name,
+          role: userDoc.role
         }, jwtSecret, {}, (err, token) => {
           if (err) {
             console.error('JWT signing error:', err);
@@ -260,7 +261,8 @@ app.post('/login', checkDBConnection, async (req, res) => {
             user: {
               id: userDoc._id,
               name: userDoc.name,
-              email: userDoc.email
+              email: userDoc.email,
+              role: userDoc.role
             }
           });
         });
@@ -317,7 +319,8 @@ app.get('/profile', checkDBConnection, async (req, res) => {
         user: {
           id: userDoc._id,
           name: userDoc.name,
-          email: userDoc.email
+          email: userDoc.email,
+          role: userDoc.role
         }
       });
     });

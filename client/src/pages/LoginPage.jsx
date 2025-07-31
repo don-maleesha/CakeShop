@@ -44,7 +44,12 @@ export default function LoginPage() {
       sessionStorage.setItem('user', JSON.stringify(data.user));
     }
     
-    setRedirect(true);
+    // Role-based redirect
+    if (data.user.role === 'admin') {
+      setRedirect('/admin/dashboard');
+    } else {
+      setRedirect('/home');
+    }
   } catch (error) {
     setError(error.response?.data?.message || 'Login failed. Please try again.');
   } finally {
@@ -53,7 +58,7 @@ export default function LoginPage() {
   }
 
   if (redirect) {
-    return <Navigate to="/" />;
+    return <Navigate to={redirect} />;
   }
 
   return (

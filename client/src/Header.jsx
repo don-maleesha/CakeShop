@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import UserContext from './pages/UserContext';
 
 export default function Header() {
@@ -46,12 +46,12 @@ export default function Header() {
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
+              <Link to="/" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Home
-              </a>
-              <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
+              </Link>
+              <Link to="/cakes" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Cakes
-              </a>
+              </Link>
               <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Custom Orders
               </a>
@@ -97,6 +97,17 @@ export default function Header() {
                   {/* Dropdown Menu */}
                   {showDropdown && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                      {user.role === 'admin' && (
+                        <>
+                          <Link 
+                            to="/admin/dashboard" 
+                            className="block px-4 py-2 text-purple-600 hover:bg-gray-100 transition-colors font-medium"
+                          >
+                            🔧 Admin Panel
+                          </Link>
+                          <hr className="my-2 border-gray-200" />
+                        </>
+                      )}
                       <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors">
                         Profile
                       </a>
