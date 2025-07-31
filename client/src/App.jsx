@@ -7,7 +7,9 @@ import IndexPage from './pages/IndexPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import { UserContextProvider } from './pages/UserContext.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
+import HomePage from './pages/HomePage.jsx';
 import Layout from './Layout.jsx';
+import Users from './admin/Users';
 
 
 import Category_management from './admin/Category_management.jsx';
@@ -24,13 +26,15 @@ function App() {
             <Route index element={<Dashboard />} /> 
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="categories" element={<Category_management />} />
+            <Route path="users" element={<Users />} /> 
           </Route>
 
           {/* Public Routes */}
           <Route path="/" element={<Layout />}>
-            <Route index element={<IndexPage />} />
+            <Route index element={<HomePage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
+            <Route path="home" element={<HomePage />} />
           </Route>
         </Routes>
       </UserContextProvider>
