@@ -20,20 +20,31 @@ export function UserContextProvider({ children }) {
       setReady(true);
     } else {
       // Only fetch profile if no stored user exists
-      axios.get('/profile').then(({ data }) => {
-        setUser(data);
+      axios.get('/api/profile', { withCredentials: true }).then(({ data }) => {
+        if (data.success && data.user) {
+          setUser(data.user);
+        } else {
+          setUser(null);
+        }
         setReady(true);
       }).catch(() => {
+        setUser(null); // Explicitly set to null on error
         setReady(true); // Mark as ready even if profile fetch fails
       });
     }
   }, []);
 
-  const logout = () => {
-    axios.post('/logout');
-    setUser(null);
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('user');
+  const logout = async () => {
+    try {
+      await axios.post('/api/logout', {}, { withCredentials: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Always clear user state and storage regardless of API call result
+      setUser(null);
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+    }
   };
 
   return (
