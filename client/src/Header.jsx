@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function Header() {
     return (
       <header className="bg-white shadow-lg">
@@ -16,21 +18,21 @@ export default function Header() {
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
+              <Link to="/" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Home
-              </a>
+              </Link>
               <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Cakes
               </a>
-              <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
+              <Link to="/custom-order" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Custom Orders
-              </a>
+              </Link>
               <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 About
               </a>
-              <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
+              <Link to="/contact" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Contact
-              </a>
+              </Link>
             </nav>
 
             {/* Action Buttons */}
@@ -40,12 +42,12 @@ export default function Header() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 5.5M7 13v6a2 2 0 002 2h6a2 2 0 002-2v-6" />
                 </svg>
               </button>
-              <a 
-                href="/login" 
+              <Link 
+                to="/login" 
                 className="text-white bg-primary border-2 border-primary px-4 py-2 rounded-lg hover:bg-white hover:text-primary transition-colors font-medium"
               >
                 Login
-              </a>
+              </Link>
             </div>
 
             {/* Mobile Menu Button */}

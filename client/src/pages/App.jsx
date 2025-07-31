@@ -8,9 +8,9 @@ import { UserContextProvider } from './pages/UserContext.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import CustomOrder from './pages/CustomOrder.jsx';
-import Contact from './pages/Contact.jsx';
 import Layout from './Layout.jsx';
 import Users from './admin/Users';
+
 
 import Category_management from './admin/Category_management.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
@@ -36,7 +36,6 @@ function App() {
             <Route path="register" element={<RegisterPage />} />
             <Route path="home" element={<HomePage />} />
             <Route path="custom-order" element={<CustomOrder />} />
-            <Route path="contact" element={<Contact />} />
           </Route>
         </Routes>
       </UserContextProvider>
