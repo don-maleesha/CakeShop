@@ -1,12 +1,20 @@
-import React from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import React, { useContext } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { IoAccessibility, IoBarChartSharp, IoBagCheck, IoFastFood } from "react-icons/io5";
 import { AiFillDashboard, AiFillHdd } from "react-icons/ai";
 import { HiUsers } from "react-icons/hi";
 import { HiLogout } from "react-icons/hi";
+import UserContext from '../pages/UserContext';
 
 function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useContext(UserContext);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: <AiFillDashboard /> },
@@ -38,7 +46,10 @@ function AdminLayout() {
           
           {/* Modern Logout Button - positioned after navigation items */}
           <div className="pt-4">
-            <button className="flex items-center justify-center px-4 py-3 text-white bg-red-500 hover:bg-red-600 rounded-lg w-full transition-colors duration-200 font-medium shadow-sm">
+            <button 
+              onClick={handleLogout}
+              className="flex items-center justify-center px-4 py-3 text-white bg-red-500 hover:bg-red-600 rounded-lg w-full transition-colors duration-200 font-medium shadow-sm"
+            >
               <HiLogout className="mr-2 text-lg" />
               Logout
             </button>
