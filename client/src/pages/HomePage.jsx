@@ -28,10 +28,10 @@ const HomePage = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link
-                  to="/cakes"
+                  to="/custom-order"
                   className="inline-flex items-center justify-center px-8 py-4 border-2 border-red-500 text-red-500 font-medium rounded-lg hover:bg-red-500 hover:text-white transition-all duration-200"
                 >
-                  View Menu
+                  Custom Orders
                 </Link>
               </div>
             </div>
@@ -84,7 +84,7 @@ const HomePage = () => {
               </p>
             </div>
             
-            <div className="text-center p-6">
+            <Link to="/custom-order" className="text-center p-6 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
               <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Star className="h-8 w-8 text-red-500" />
               </div>
@@ -92,7 +92,7 @@ const HomePage = () => {
               <p className="text-gray-600">
                 Create personalized cakes for birthdays, weddings, and special occasions.
               </p>
-            </div>
+            </Link>
           </div>
         </div>
       </section>

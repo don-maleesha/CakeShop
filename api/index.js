@@ -4,6 +4,8 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Category = require('./models/Category');
+const Contact = require('./models/Contact');
+const CustomOrder = require('./models/CustomOrder');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 
@@ -434,8 +436,306 @@ app.delete('/categories/:id', checkDBConnection, async (req, res) => {
   }
 });
 
+// POST - Submit Contact Form (Fix syntax error)
+app.post('/contact', checkDBConnection, async (req, res) => {
+  try {
+    const { customerName, customerEmail, subject, message } = req.body;
+    
+    // Basic validation
+    if (!customerName || !customerEmail || !subject || !message) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'All fields are required' 
+      });
+    }
+    
+    // Validate name length
+    const trimmedName = customerName.trim();
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Name must be between 2 and 50 characters' 
+      });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerEmail.trim())) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Please enter a valid email address' 
+      });
+    }
+    
+    // Validate message length
+    if (message.trim().length < 10 || message.trim().length > 1000) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Message must be between 10 and 1000 characters' 
+      });
+    }
+    
+    const contact = new Contact({
+      customerName: trimmedName,
+      customerEmail: customerEmail.trim().toLowerCase(),
+      subject,
+      message: message.trim()
+    });
+    
+    await contact.save();
+    
+    res.status(201).json({ 
+      success: true,
+      message: 'Your message has been sent successfully',
+      ticketId: contact.ticketId,
+      contact: {
+        id: contact._id,
+        ticketId: contact.ticketId,
+        customerName: contact.customerName,
+        customerEmail: contact.customerEmail,
+        subject: contact.subject,
+        status: contact.status,
+        createdAt: contact.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Contact form submission error:', error);
+    
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        success: false,
+        error: validationErrors.join(', ') 
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to submit contact form. Please try again.' 
+    });
+  }
+});
+
+// POST - Submit Custom Order
+app.post('/custom-orders', checkDBConnection, async (req, res) => {
+  try {
+    const { 
+      customerName, 
+      customerEmail, 
+      customerPhone, 
+      eventType, 
+      cakeSize, 
+      flavor, 
+      specialRequirements, 
+      deliveryDate 
+    } = req.body;
+    
+    // Basic validation
+    if (!customerName || !customerEmail || !customerPhone || !eventType || !cakeSize || !flavor || !deliveryDate) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'All required fields must be filled' 
+      });
+    }
+    
+    // Validate name length
+    const trimmedName = customerName.trim();
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Name must be between 2 and 50 characters' 
+      });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerEmail.trim())) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Please enter a valid email address' 
+      });
+    }
+    
+    // Validate delivery date (must be at least 7 days from now)
+    const orderDate = new Date(deliveryDate);
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    
+    if (orderDate < sevenDaysFromNow) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Delivery date must be at least 7 days from today' 
+      });
+    }
+    
+    const customOrder = new CustomOrder({
+      customerName: trimmedName,
+      customerEmail: customerEmail.trim().toLowerCase(),
+      customerPhone: customerPhone.trim(),
+      eventType,
+      cakeSize,
+      flavor,
+      specialRequirements: specialRequirements ? specialRequirements.trim() : '',
+      deliveryDate: orderDate
+    });
+    
+    await customOrder.save();
+    
+    res.status(201).json({ 
+      success: true,
+      message: 'Custom order submitted successfully',
+      orderId: customOrder.orderId,
+      customOrder: {
+        id: customOrder._id,
+        orderId: customOrder.orderId,
+        customerName: customOrder.customerName,
+        customerEmail: customOrder.customerEmail,
+        eventType: customOrder.eventType,
+        cakeSize: customOrder.cakeSize,
+        flavor: customOrder.flavor,
+        deliveryDate: customOrder.deliveryDate,
+        status: customOrder.status,
+        createdAt: customOrder.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Custom order submission error:', error);
+    
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        success: false,
+        error: validationErrors.join(', ') 
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to submit custom order. Please try again.' 
+    });
+  }
+});
+
+// GET - Fetch All Contact Messages (Admin)
+app.get('/contact', checkDBConnection, async (req, res) => {
+  try {
+    const contacts = await Contact.find().sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      contacts
+    });
+  } catch (error) {
+    console.error('Fetch contacts error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch contact messages' 
+    });
+  }
+});
+
+// GET - Fetch All Custom Orders (Admin)
+app.get('/custom-orders', checkDBConnection, async (req, res) => {
+  try {
+    const customOrders = await CustomOrder.find().sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      customOrders
+    });
+  } catch (error) {
+    console.error('Fetch custom orders error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch custom orders' 
+    });
+  }
+});
+
+// PUT - Update Contact Status (Admin)
+app.put('/contact/:id', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid contact ID format' 
+      });
+    }
+    
+    const contact = await Contact.findByIdAndUpdate(
+      id, 
+      { status, ...(notes && { notes }) }, 
+      { new: true }
+    );
+    
+    if (!contact) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Contact message not found' 
+      });
+    }
+    
+    res.status(200).json({ 
+      success: true,
+      message: 'Contact status updated successfully',
+      contact
+    });
+  } catch (error) {
+    console.error('Update contact error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update contact status' 
+    });
+  }
+});
+
+// PUT - Update Custom Order Status (Admin)
+app.put('/custom-orders/:id', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, estimatedPrice, notes } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid order ID format' 
+      });
+    }
+    
+    const updateData = { status };
+    if (estimatedPrice !== undefined) updateData.estimatedPrice = estimatedPrice;
+    if (notes !== undefined) updateData.notes = notes;
+    
+    const customOrder = await CustomOrder.findByIdAndUpdate(
+      id, 
+      updateData, 
+      { new: true }
+    );
+    
+    if (!customOrder) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Custom order not found' 
+      });
+    }
+    
+    res.status(200).json({ 
+      success: true,
+      message: 'Custom order updated successfully',
+      customOrder
+    });
+  } catch (error) {
+    console.error('Update custom order error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update custom order' 
+    });
+  }
+});
+
 // GET - Fetch All Users
-app.get('/users', async (req, res) => {
+app.get('/users', checkDBConnection, async (req, res) => {
   try {
     const users = await User.find().select('-password'); // Exclude password from response
     res.status(200).json(users);
@@ -449,7 +749,7 @@ app.get('/users', async (req, res) => {
 });
 
 // GET - Fetch User by ID
-app.get('/users/:id', async (req, res) => {
+app.get('/users/:id', checkDBConnection, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -480,7 +780,7 @@ app.get('/users/:id', async (req, res) => {
 });
 
 // DELETE - Remove User
-app.delete('/users/:id', async (req, res) => {
+app.delete('/users/:id', checkDBConnection, async (req, res) => {
   try {
     const { id } = req.params;
     
