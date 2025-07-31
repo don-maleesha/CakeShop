@@ -1,6 +1,8 @@
+
 import { useContext, useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import UserContext from './pages/UserContext';
+
 
 export default function Header() {
     const { user, logout } = useContext(UserContext);
@@ -46,21 +48,21 @@ export default function Header() {
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
+              <Link to="/" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Home
-              </a>
+              </Link>
               <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Cakes
               </a>
-              <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
+              <Link to="/custom-order" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Custom Orders
-              </a>
+              </Link>
               <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 About
               </a>
-              <a href="#" className="text-gray-900 hover:text-primary transition-colors font-medium">
+              <Link to="/contact" className="text-gray-900 hover:text-primary transition-colors font-medium">
                 Contact
-              </a>
+              </Link>
             </nav>
 
             {/* Action Buttons */}
@@ -70,6 +72,8 @@ export default function Header() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 5.5M7 13v6a2 2 0 002 2h6a2 2 0 002-2v-6" />
                 </svg>
               </button>
+
+              
               
               {/* User Authentication Section */}
               {user ? (
@@ -121,6 +125,7 @@ export default function Header() {
                   Login
                 </a>
               )}
+
             </div>
 
             {/* Mobile Menu Button */}
