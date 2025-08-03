@@ -111,19 +111,19 @@ const HomePage = () => {
             {[
               {
                 name: 'Chocolate Indulgence',
-                price: '$42.99',
+                price: 'LKR 7,850.00',
                 image: 'https://images.pexels.com/photos/1126359/pexels-photo-1126359.jpeg',
                 description: 'Rich chocolate layers with premium cocoa'
               },
               {
                 name: 'Vanilla Bean Elegant',
-                price: '$36.99',
+                price: 'LKR 6,750.00',
                 image: 'https://images.pexels.com/photos/1721932/pexels-photo-1721932.jpeg',
                 description: 'Classic vanilla with elegant decoration'
               },
               {
                 name: 'Berry Fresh Delight',
-                price: '$39.99',
+                price: 'LKR 7,300.00',
                 image: 'https://images.pexels.com/photos/1055272/pexels-photo-1055272.jpeg',
                 description: 'Light sponge with fresh seasonal berries'
               }

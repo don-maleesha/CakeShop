@@ -17,6 +17,7 @@ import ProtectedAdminRoute from './components/ProtectedAdminRoute.jsx';
 import RoleBasedRedirect from './components/RoleBasedRedirect.jsx';
 
 import Category_management from './admin/Category_management.jsx';
+import ProductManagement from './admin/ProductManagement.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
 import Dashboard from './admin/Dashboard.jsx';
 
@@ -33,6 +34,7 @@ function App() {
           }>
             <Route index element={<Dashboard />} /> 
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="products" element={<ProductManagement />} />
             <Route path="categories" element={<Category_management />} />
             <Route path="users" element={<Users />} /> 
           </Route>
