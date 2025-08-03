@@ -6,6 +6,7 @@ const User = require('./models/User');
 const Category = require('./models/Category');
 const Contact = require('./models/Contact');
 const CustomOrder = require('./models/CustomOrder');
+const Product = require('./models/Product');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 
@@ -813,6 +814,494 @@ app.delete('/users/:id', checkDBConnection, async (req, res) => {
   }
 });
 
+// PRODUCT MANAGEMENT API ENDPOINTS
+
+// GET - Fetch All Products with filtering and pagination
+app.get('/products', checkDBConnection, async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      category = '',
+      type = '',
+      availability = '',
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object
+    let filter = {};
+    
+    // By default, exclude inactive products unless specifically requested
+    if (availability !== 'inactive' && availability !== 'all') {
+      filter.isActive = true;
+    }
+    
+    // Search filter
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ];
+    }
+
+    // Category filter
+    if (category) {
+      filter.category = category;
+    }
+
+    // Type filter
+    if (type) {
+      filter.type = type;
+    }
+
+    // Availability filter
+    if (availability) {
+      switch (availability) {
+        case 'in-stock':
+          filter.stockQuantity = { $gt: 0 };
+          filter.isActive = true;
+          break;
+        case 'out-of-stock':
+          filter.stockQuantity = 0;
+          break;
+        case 'low-stock':
+          filter.$expr = { $lte: ['$stockQuantity', '$lowStockThreshold'] };
+          break;
+        case 'inactive':
+          filter.isActive = false;
+          break;
+        case 'all':
+          // Remove the default isActive filter to show all products
+          delete filter.isActive;
+          break;
+      }
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    // Execute query
+    const products = await Product.find(filter)
+      .populate('category', 'name')
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count for pagination
+    const totalProducts = await Product.countDocuments(filter);
+    const totalPages = Math.ceil(totalProducts / parseInt(limit));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        products,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalProducts,
+          hasNextPage: parseInt(page) < totalPages,
+          hasPrevPage: parseInt(page) > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Fetch products error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch products'
+    });
+  }
+});
+
+// GET - Fetch Single Product by ID
+app.get('/products/:id', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid product ID format'
+      });
+    }
+
+    const product = await Product.findById(id).populate('category', 'name description');
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    console.error('Fetch product error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch product'
+    });
+  }
+});
+
+// POST - Create New Product
+app.post('/products', checkDBConnection, async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      price,
+      images,
+      category,
+      type,
+      stockQuantity,
+      lowStockThreshold,
+      isActive,
+      isFeatured,
+      isAvailableOnOrder,
+      tags,
+      ingredients,
+      allergens,
+      nutritionInfo,
+      preparationTime,
+      sizes,
+      weight,
+      dimensions
+    } = req.body;
+
+    // Basic validation
+    if (!name || !description || !price || !category) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name, description, price, and category are required'
+      });
+    }
+
+    // Validate category exists
+    const categoryExists = await Category.findById(category);
+    if (!categoryExists) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid category ID'
+      });
+    }
+
+    const product = new Product({
+      name: name.trim(),
+      description: description.trim(),
+      price: parseFloat(price),
+      images: images || [],
+      category,
+      type: type || 'regular',
+      stockQuantity: parseInt(stockQuantity) || 0,
+      lowStockThreshold: parseInt(lowStockThreshold) || 5,
+      isActive: isActive !== undefined ? isActive : true,
+      isFeatured: isFeatured || false,
+      isAvailableOnOrder: isAvailableOnOrder || false,
+      tags: tags || [],
+      ingredients: ingredients || [],
+      allergens: allergens || [],
+      nutritionInfo: nutritionInfo || {},
+      preparationTime: parseInt(preparationTime) || 24,
+      sizes: sizes || [],
+      weight: parseFloat(weight) || 0,
+      dimensions: dimensions || {}
+    });
+
+    await product.save();
+
+    // Return the created product with populated category
+    const createdProduct = await Product.findById(product._id).populate('category', 'name');
+
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      data: createdProduct
+    });
+  } catch (error) {
+    console.error('Create product error:', error);
+    
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: validationErrors.join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create product'
+    });
+  }
+});
+
+// PUT - Update Product
+app.put('/products/:id', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid product ID format'
+      });
+    }
+
+    const {
+      name,
+      description,
+      price,
+      images,
+      category,
+      type,
+      stockQuantity,
+      lowStockThreshold,
+      isActive,
+      isFeatured,
+      isAvailableOnOrder,
+      tags,
+      ingredients,
+      allergens,
+      nutritionInfo,
+      preparationTime,
+      sizes,
+      weight,
+      dimensions
+    } = req.body;
+
+    // Validate category if provided
+    if (category) {
+      const categoryExists = await Category.findById(category);
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid category ID'
+        });
+      }
+    }
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (description !== undefined) updateData.description = description.trim();
+    if (price !== undefined) updateData.price = parseFloat(price);
+    if (images !== undefined) updateData.images = images;
+    if (category !== undefined) updateData.category = category;
+    if (type !== undefined) updateData.type = type;
+    if (stockQuantity !== undefined) updateData.stockQuantity = parseInt(stockQuantity);
+    if (lowStockThreshold !== undefined) updateData.lowStockThreshold = parseInt(lowStockThreshold);
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
+    if (isAvailableOnOrder !== undefined) updateData.isAvailableOnOrder = isAvailableOnOrder;
+    if (tags !== undefined) updateData.tags = tags;
+    if (ingredients !== undefined) updateData.ingredients = ingredients;
+    if (allergens !== undefined) updateData.allergens = allergens;
+    if (nutritionInfo !== undefined) updateData.nutritionInfo = nutritionInfo;
+    if (preparationTime !== undefined) updateData.preparationTime = parseInt(preparationTime);
+    if (sizes !== undefined) updateData.sizes = sizes;
+    if (weight !== undefined) updateData.weight = parseFloat(weight);
+    if (dimensions !== undefined) updateData.dimensions = dimensions;
+
+    const product = await Product.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('category', 'name');
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'Product not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Product updated successfully',
+      data: product
+    });
+  } catch (error) {
+    console.error('Update product error:', error);
+    
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: validationErrors.join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update product'
+    });
+  }
+});
+
+// DELETE - Remove Product (Soft Delete)
+app.delete('/products/:id', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { permanent = false } = req.query;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid product ID format'
+      });
+    }
+
+    if (permanent === 'true') {
+      // Permanent delete
+      const deletedProduct = await Product.findByIdAndDelete(id);
+      
+      if (!deletedProduct) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Product permanently deleted'
+      });
+    } else {
+      // Soft delete (mark as inactive)
+      const product = await Product.findByIdAndUpdate(
+        id,
+        { isActive: false },
+        { new: true }
+      );
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Product deactivated successfully',
+        data: product
+      });
+    }
+  } catch (error) {
+    console.error('Delete product error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete product'
+    });
+  }
+});
+
+// POST - Bulk Actions on Products
+app.post('/products/bulk-action', checkDBConnection, async (req, res) => {
+  try {
+    const { action, productIds } = req.body;
+
+    if (!action || !productIds || !Array.isArray(productIds)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Action and productIds array are required'
+      });
+    }
+
+    // Validate all product IDs
+    const invalidIds = productIds.filter(id => !mongoose.Types.ObjectId.isValid(id));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid product IDs: ${invalidIds.join(', ')}`
+      });
+    }
+
+    let updateData = {};
+    let message = '';
+
+    switch (action) {
+      case 'activate':
+        updateData = { isActive: true };
+        message = 'Products activated successfully';
+        break;
+      case 'deactivate':
+        updateData = { isActive: false };
+        message = 'Products deactivated successfully';
+        break;
+      case 'feature':
+        updateData = { isFeatured: true };
+        message = 'Products marked as featured successfully';
+        break;
+      case 'unfeature':
+        updateData = { isFeatured: false };
+        message = 'Products unmarked as featured successfully';
+        break;
+      case 'delete':
+        // Soft delete
+        updateData = { isActive: false };
+        message = 'Products deleted successfully';
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid action. Allowed actions: activate, deactivate, feature, unfeature, delete'
+        });
+    }
+
+    const result = await Product.updateMany(
+      { _id: { $in: productIds } },
+      updateData
+    );
+
+    res.status(200).json({
+      success: true,
+      message,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Bulk action error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to perform bulk action'
+    });
+  }
+});
+
+// GET - Low Stock Alert
+app.get('/products/alerts/low-stock', checkDBConnection, async (req, res) => {
+  try {
+    const lowStockProducts = await Product.find({
+      $expr: { $lte: ['$stockQuantity', '$lowStockThreshold'] },
+      isActive: true
+    }).populate('category', 'name');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        count: lowStockProducts.length,
+        products: lowStockProducts
+      }
+    });
+  } catch (error) {
+    console.error('Low stock alert error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch low stock products'
+    });
+  }
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.json({ 
@@ -820,12 +1309,27 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       'POST /register': 'User registration',
+      'POST /login': 'User login',
+      'GET /profile': 'Get user profile',
+      'POST /logout': 'User logout',
       'POST /categories': 'Add new category',
       'GET /categories': 'Get all categories',
       'DELETE /categories/:id': 'Remove category',
       'GET /users': 'Get all users',
       'GET /users/:id': 'Get user by ID',
-      'DELETE /users/:id': 'Remove user'
+      'DELETE /users/:id': 'Remove user',
+      'POST /contact': 'Submit contact form',
+      'GET /contact': 'Get all contact messages',
+      'POST /custom-orders': 'Submit custom order',
+      'GET /custom-orders': 'Get all custom orders',
+      'PUT /custom-orders/:id': 'Update custom order',
+      'GET /products': 'Get all products with filtering',
+      'GET /products/:id': 'Get single product',
+      'POST /products': 'Create new product',
+      'PUT /products/:id': 'Update product',
+      'DELETE /products/:id': 'Delete product',
+      'POST /products/bulk-action': 'Bulk actions on products',
+      'GET /products/alerts/low-stock': 'Get low stock products'
     }
   });
 });
