@@ -437,6 +437,70 @@ app.delete('/categories/:id', checkDBConnection, async (req, res) => {
   }
 });
 
+// PUT - Update Category
+app.put('/categories/:id', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, image } = req.body;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid category ID format' 
+      });
+    }
+    
+    // Basic validation
+    if (!name || !description) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Name and description are required' 
+      });
+    }
+    
+    const updatedCategory = await Category.findByIdAndUpdate(
+      id,
+      { name, description, image },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedCategory) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Category not found' 
+      });
+    }
+    
+    res.status(200).json({ 
+      success: true,
+      message: 'Category updated successfully',
+      category: {
+        id: updatedCategory._id,
+        name: updatedCategory.name,
+        description: updatedCategory.description,
+        image: updatedCategory.image
+      }
+    });
+  } catch (error) {
+    console.error('Update category error:', error);
+    
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        success: false,
+        error: validationErrors.join(', ') 
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update category' 
+    });
+  }
+});
+
 // POST - Submit Contact Form (Fix syntax error)
 app.post('/contact', checkDBConnection, async (req, res) => {
   try {
@@ -1314,6 +1378,7 @@ app.get('/', (req, res) => {
       'POST /logout': 'User logout',
       'POST /categories': 'Add new category',
       'GET /categories': 'Get all categories',
+      'PUT /categories/:id': 'Update category',
       'DELETE /categories/:id': 'Remove category',
       'GET /users': 'Get all users',
       'GET /users/:id': 'Get user by ID',
