@@ -23,6 +23,7 @@ function AdminLayout() {
     { name: 'Categories', path: '/admin/categories', icon: <AiFillHdd /> },
     { name: 'Analytics', path: '/admin/analytics', icon: <IoBarChartSharp /> },
     { name: 'Users', path: '/admin/users', icon: <HiUsers /> },
+    { name: 'Contact Messages', path: '/admin/contacts', icon: <IoAccessibility /> },
   ];
 
   return (

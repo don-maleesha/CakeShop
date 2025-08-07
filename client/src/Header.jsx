@@ -50,9 +50,12 @@ export default function Header() {
             <Link to="/cakes" className="text-gray-900 hover:text-primary transition-colors font-medium">
               Cakes
             </Link>
-            <Link to="/custom-order" className="text-gray-900 hover:text-primary transition-colors font-medium">
-              Custom Orders
-            </Link>
+            {/* Only show Custom Orders link for logged-in users */}
+            {user && (
+              <Link to="/custom-order" className="text-gray-900 hover:text-primary transition-colors font-medium">
+                Custom Orders
+              </Link>
+            )}
             <Link to="/about" className="text-gray-900 hover:text-primary transition-colors font-medium">
               About
             </Link>

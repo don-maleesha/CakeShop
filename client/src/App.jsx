@@ -14,10 +14,12 @@ import Contact from './pages/Contact.jsx';
 import Layout from './Layout.jsx';
 import Users from './admin/Users';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute.jsx';
+import ProtectedUserRoute from './components/ProtectedUserRoute.jsx';
 import RoleBasedRedirect from './components/RoleBasedRedirect.jsx';
 
 import Category_management from './admin/Category_management.jsx';
 import ProductManagement from './admin/ProductManagement.jsx';
+import ContactManagement from './admin/ContactManagement.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
 import Dashboard from './admin/Dashboard.jsx';
 
@@ -36,7 +38,8 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="products" element={<ProductManagement />} />
             <Route path="categories" element={<Category_management />} />
-            <Route path="users" element={<Users />} /> 
+            <Route path="users" element={<Users />} />
+            <Route path="contacts" element={<ContactManagement />} /> 
           </Route>
 
           {/* Public Routes */}
@@ -49,7 +52,14 @@ function App() {
             <Route path="register" element={<RegisterPage />} />
             <Route path="home" element={<HomePage />} />
             
-            <Route path="custom-order" element={<CustomOrder />} />
+            {/* Protected User Routes */}
+            <Route path="custom-order" element={
+              <ProtectedUserRoute>
+                <CustomOrder />
+              </ProtectedUserRoute>
+            } />
+            
+            {/* Public Routes */}
             <Route path="contact" element={<Contact />} />
           </Route>
         </Routes>

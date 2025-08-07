@@ -38,12 +38,23 @@ const contactSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['open', 'in-progress', 'resolved', 'closed'],
-    default: 'open'
+    enum: ['pending', 'in-progress', 'resolved', 'closed'],
+    default: 'pending'
   },
   ticketId: {
     type: String,
     unique: true
+  },
+  notes: {
+    type: String,
+    trim: true
+  },
+  repliedAt: {
+    type: Date
+  },
+  repliedBy: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true
