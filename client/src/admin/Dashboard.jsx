@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import { 
   ShoppingBag, 
   DollarSign, 
@@ -11,16 +12,38 @@ import {
 } from 'lucide-react';
 
 function Dashboard() {
-  const [stats] = useState({
+  const [stats, setStats] = useState({
     totalOrders: 125,
     totalRevenue: 8750,
     customOrders: 23,
-    supportTickets: 5,
+    contactMessages: 0,
     totalProducts: 45,
     activeCoupons: 8
   });
 
-  const [recentActivity] = useState([
+  useEffect(() => {
+    fetchContactStats();
+  }, []);
+
+  const fetchContactStats = async () => {
+    try {
+      const response = await axios.get('http://localhost:4000/contact');
+      if (response.data.success) {
+        const pendingMessages = response.data.contacts.filter(
+          contact => contact.status === 'pending' || !contact.status
+        ).length;
+        
+        setStats(prev => ({
+          ...prev,
+          contactMessages: pendingMessages
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching contact stats:', error);
+    }
+  };
+
+  const [recentActivity, setRecentActivity] = useState([
     {
       id: 1,
       type: 'order',
@@ -35,8 +58,8 @@ function Dashboard() {
     },
     {
       id: 3,
-      type: 'support',
-      message: 'New support ticket: Payment issue',
+      type: 'contact',
+      message: 'New contact message: Payment issue',
       time: '1 hour ago'
     },
     {
@@ -46,6 +69,34 @@ function Dashboard() {
       time: '2 hours ago'
     }
   ]);
+
+  useEffect(() => {
+    fetchContactStats();
+    fetchRecentContacts();
+  }, []);
+
+  const fetchRecentContacts = async () => {
+    try {
+      const response = await axios.get('http://localhost:4000/contact');
+      if (response.data.success) {
+        const recentContacts = response.data.contacts
+          .slice(0, 2)
+          .map(contact => ({
+            id: contact._id,
+            type: 'contact',
+            message: `New message from ${contact.customerName}: ${contact.subject}`,
+            time: new Date(contact.createdAt).toLocaleString()
+          }));
+        
+        setRecentActivity(prev => [
+          ...recentContacts,
+          ...prev.filter(activity => activity.type !== 'contact').slice(0, 2)
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching recent contacts:', error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -113,8 +164,8 @@ function Dashboard() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.supportTickets}</p>
-              <p className="text-gray-600">Open Tickets</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.contactMessages}</p>
+              <p className="text-gray-600">Pending Messages</p>
             </div>
             <div className="bg-orange-100 p-3 rounded-full">
               <MessageCircle className="w-6 h-6 text-orange-600" />
@@ -122,10 +173,10 @@ function Dashboard() {
           </div>
           <div className="mt-4">
             <Link
-              to="/admin/support"
+              to="/admin/contacts"
               className="text-sm text-orange-600 hover:text-orange-800"
             >
-              View tickets →
+              View messages →
             </Link>
           </div>
         </div>
@@ -180,10 +231,12 @@ function Dashboard() {
               <div className={`p-2 rounded-full ${
                 activity.type === 'order' ? 'bg-blue-100' :
                 activity.type === 'custom' ? 'bg-purple-100' :
-                'bg-orange-100'
+                activity.type === 'contact' ? 'bg-orange-100' :
+                'bg-gray-100'
               }`}>
                 {activity.type === 'order' && <ShoppingBag className="w-4 h-4 text-blue-600" />}
                 {activity.type === 'custom' && <Calendar className="w-4 h-4 text-purple-600" />}
+                {activity.type === 'contact' && <MessageCircle className="w-4 h-4 text-orange-600" />}
                 {activity.type === 'support' && <MessageCircle className="w-4 h-4 text-orange-600" />}
               </div>
               <div className="flex-1">
