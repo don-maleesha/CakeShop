@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import axios from 'axios';
+import { IoCall, IoMail, IoLocationSharp } from 'react-icons/io5';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -107,7 +109,7 @@ export default function Contact() {
               <div className="space-y-6">
                 <div className="flex items-start space-x-4">
                   <div className="bg-red-100 p-3 rounded-full">
-                    <span className="text-red-500 text-xl">📞</span>
+                    <IoCall className="text-red-500 text-2xl" />
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">Phone</h3>
@@ -118,7 +120,7 @@ export default function Contact() {
 
                 <div className="flex items-start space-x-4">
                   <div className="bg-red-100 p-3 rounded-full">
-                    <span className="text-red-500 text-xl">✉️</span>
+                    <IoMail className="text-red-500 text-2xl" />
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">Email</h3>
@@ -129,7 +131,7 @@ export default function Contact() {
 
                 <div className="flex items-start space-x-4">
                   <div className="bg-red-100 p-3 rounded-full">
-                    <span className="text-red-500 text-xl">📍</span>
+                    <IoLocationSharp className="text-red-500 text-2xl" />
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">Location</h3>
