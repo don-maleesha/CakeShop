@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import axios from 'axios';
+import { IoPerson, IoCalendar, IoRestaurant, IoTime, IoMail, IoCall } from 'react-icons/io5';
 
 export default function CustomOrder() {
   const [formData, setFormData] = useState({
@@ -142,7 +144,7 @@ export default function CustomOrder() {
                 {/* Contact Information */}
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <span className="w-5 h-5 mr-2 text-red-500 flex items-center justify-center">👤</span>
+                    <IoPerson className="w-5 h-5 mr-2 text-red-500" />
                     Contact Information
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -194,7 +196,7 @@ export default function CustomOrder() {
                 {/* Event Details */}
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <span className="w-5 h-5 mr-2 text-red-500 flex items-center justify-center">📅</span>
+                    <IoCalendar className="w-5 h-5 mr-2 text-red-500" />
                     Event Details
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -235,7 +237,7 @@ export default function CustomOrder() {
                 {/* Cake Specifications */}
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <span className="w-5 h-5 mr-2 text-red-500 flex items-center justify-center">🧁</span>
+                    <IoRestaurant className="w-5 h-5 mr-2 text-red-500" />
                     Cake Specifications
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -308,7 +310,7 @@ export default function CustomOrder() {
               
               <div className="space-y-4 text-sm">
                 <div className="flex items-start space-x-3">
-                  <span className="w-5 h-5 text-red-500 mt-0.5 flex items-center justify-center">⏰</span>
+                  <IoTime className="w-5 h-5 text-red-500 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Processing Time</p>
                     <p className="text-gray-600">Minimum 7 days notice required for custom orders</p>
@@ -316,7 +318,7 @@ export default function CustomOrder() {
                 </div>
                 
                 <div className="flex items-start space-x-3">
-                  <span className="w-5 h-5 text-red-500 mt-0.5 flex items-center justify-center">✉️</span>
+                  <IoMail className="w-5 h-5 text-red-500 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Confirmation</p>
                     <p className="text-gray-600">You'll receive a quote within 24 hours</p>
@@ -324,7 +326,7 @@ export default function CustomOrder() {
                 </div>
                 
                 <div className="flex items-start space-x-3">
-                  <span className="w-5 h-5 text-red-500 mt-0.5 flex items-center justify-center">📞</span>
+                  <IoCall className="w-5 h-5 text-red-500 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Questions?</p>
                     <p className="text-gray-600">Call us at (555) 123-4567</p>
