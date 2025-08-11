@@ -7,6 +7,7 @@ const Category = require('./models/Category');
 const Contact = require('./models/Contact');
 const CustomOrder = require('./models/CustomOrder');
 const Product = require('./models/Product');
+const { sendEmail, createContactReplyTemplate } = require('./services/emailService');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 
@@ -755,6 +756,82 @@ app.put('/contact/:id', checkDBConnection, async (req, res) => {
   }
 });
 
+// POST - Send Reply Email to Contact (Admin)
+app.post('/contact/:id/reply', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message, adminName = 'CakeShop Support Team' } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid contact ID format' 
+      });
+    }
+
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Reply message is required' 
+      });
+    }
+
+    // Find the contact
+    const contact = await Contact.findById(id);
+    
+    if (!contact) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Contact message not found' 
+      });
+    }
+
+    // Create email templates
+    const { html, text } = createContactReplyTemplate(
+      contact.customerName,
+      message.trim(),
+      contact.subject,
+      contact.ticketId
+    );
+
+    // Send email
+    const emailResult = await sendEmail(
+      contact.customerEmail,
+      `Re: ${contact.subject} - Ticket #${contact.ticketId}`,
+      html,
+      text
+    );
+
+    if (emailResult.success) {
+      // Update contact with reply information
+      await Contact.findByIdAndUpdate(id, {
+        status: 'resolved',
+        notes: `Admin reply sent by ${adminName}: ${message.trim()}`,
+        repliedAt: new Date(),
+        repliedBy: adminName
+      });
+
+      res.status(200).json({ 
+        success: true,
+        message: 'Reply sent successfully',
+        emailMessageId: emailResult.messageId
+      });
+    } else {
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to send email reply',
+        details: emailResult.error
+      });
+    }
+  } catch (error) {
+    console.error('Send reply error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to send reply' 
+    });
+  }
+});
+
 // PUT - Update Custom Order Status (Admin)
 app.put('/custom-orders/:id', checkDBConnection, async (req, res) => {
   try {
@@ -1385,6 +1462,8 @@ app.get('/', (req, res) => {
       'DELETE /users/:id': 'Remove user',
       'POST /contact': 'Submit contact form',
       'GET /contact': 'Get all contact messages',
+      'PUT /contact/:id': 'Update contact status',
+      'POST /contact/:id/reply': 'Send reply email to contact',
       'POST /custom-orders': 'Submit custom order',
       'GET /custom-orders': 'Get all custom orders',
       'PUT /custom-orders/:id': 'Update custom order',
