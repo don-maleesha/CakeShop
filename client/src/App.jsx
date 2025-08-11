@@ -7,7 +7,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import { UserContextProvider } from './pages/UserContext.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import HomePage from './pages/HomePage.jsx';
-
+import CakesPage from './pages/CakesPage.jsx';
 import CustomOrder from './pages/CustomOrder.jsx';
 import Contact from './pages/Contact.jsx';
 
@@ -29,37 +29,48 @@ function App() {
       <UserContextProvider>
         <Routes>
           {/* Admin Routes - Protected */}
-          <Route path="/admin" element={
-            <ProtectedAdminRoute>
-              <AdminLayout />
-            </ProtectedAdminRoute>
-          }>
-            <Route index element={<Dashboard />} /> 
+          <Route
+            path="/admin"
+            element={
+              <ProtectedAdminRoute>
+                <AdminLayout />
+              </ProtectedAdminRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="products" element={<ProductManagement />} />
             <Route path="categories" element={<Category_management />} />
             <Route path="users" element={<Users />} />
-            <Route path="contacts" element={<ContactManagement />} /> 
+            <Route path="contacts" element={<ContactManagement />} />
           </Route>
 
           {/* Public Routes */}
           <Route path="/" element={<Layout />}>
-            <Route index element={<>
-              <RoleBasedRedirect />
-              <HomePage />
-            </>} />
+            <Route
+              index
+              element={
+                <>
+                  <RoleBasedRedirect />
+                  <HomePage />
+                </>
+              }
+            />
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
             <Route path="home" element={<HomePage />} />
+            <Route path="cakes" element={<CakesPage />} />
             
-            {/* Protected User Routes */}
-            <Route path="custom-order" element={
-              <ProtectedUserRoute>
-                <CustomOrder />
-              </ProtectedUserRoute>
-            } />
+            {/* Protected User Route */}
+            <Route
+              path="custom-order"
+              element={
+                <ProtectedUserRoute>
+                  <CustomOrder />
+                </ProtectedUserRoute>
+              }
+            />
             
-            {/* Public Routes */}
             <Route path="contact" element={<Contact />} />
           </Route>
         </Routes>
