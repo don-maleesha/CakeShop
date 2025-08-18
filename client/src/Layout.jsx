@@ -1,7 +1,8 @@
 
 import { Outlet } from "react-router-dom";
-import Header from "./Header";
+import Header from "./components/Header";
 import Footer from './components/Footer.jsx';
+import CartSidebar from './components/CartSidebar.jsx';
 
 export default function Layout() {
     return (
@@ -11,6 +12,7 @@ export default function Layout() {
                 <Outlet />
             </main>
             <Footer />
+            <CartSidebar />
         </div>
     );
 }
