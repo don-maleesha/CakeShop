@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Filter, Plus, Loader2 } from 'lucide-react';
+import { useCart } from '../contexts/CartContext';
 
 // Pagination component
 const Pagination = ({ totalPages, currentPage, onPageChange }) => {
@@ -86,6 +87,7 @@ Pagination.propTypes = {
 };
 
 const CakesPage = () => {
+  const { addToCart } = useCart();
   const [categoryPage, setCategoryPage] = useState(1);
   const categoriesPerPage = 8;
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -157,9 +159,27 @@ const CakesPage = () => {
     fetchData();
   }, []);
 
-  const addToCart = (product) => {
-    console.log('Added to cart:', product);
-    alert(`${product.name} added to cart!`);
+  const handleAddToCart = (product, selectedSize = null) => {
+    try {
+      addToCart(product, 1, selectedSize);
+      // Show a success message
+      alert(`${product.name}${selectedSize ? ` (${selectedSize.name})` : ''} added to cart!`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Failed to add item to cart. Please try again.');
+    }
+  };
+
+  const handleProductAddToCart = (product) => {
+    // Check if product has sizes
+    if (product.sizes && product.sizes.length > 0) {
+      // For products with sizes, use default size or prompt user
+      const defaultSize = product.sizes[0];
+      handleAddToCart(product, defaultSize);
+    } else {
+      // For products without sizes
+      handleAddToCart(product);
+    }
   };
 
   // Reset current page when category or sort changes
@@ -397,7 +417,7 @@ const CakesPage = () => {
                               )}
                             </span>
                             <button
-                              onClick={() => addToCart(product)}
+                              onClick={() => handleProductAddToCart(product)}
                               className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center space-x-2"
                             >
                               <Plus className="w-4 h-4" />

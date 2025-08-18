@@ -7,6 +7,7 @@ const Category = require('./models/Category');
 const Contact = require('./models/Contact');
 const CustomOrder = require('./models/CustomOrder');
 const Product = require('./models/Product');
+const Order = require('./models/Order');
 const { sendEmail, createContactReplyTemplate } = require('./services/emailService');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
@@ -18,12 +19,18 @@ const bcryptSalt = bcrypt.genSaltSync(12);
 const jwtSecret = process.env.JWT_SECRET || 'defaultsecretkey';
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
   credentials: true
 }));
 
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
+
+// Add request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 // Database connection check middleware
 const checkDBConnection = (req, res, next) => {
@@ -1443,6 +1450,321 @@ app.get('/products/alerts/low-stock', checkDBConnection, async (req, res) => {
   }
 });
 
+// GET - Featured Products (Most Sold)
+app.get('/products/featured', checkDBConnection, async (req, res) => {
+  try {
+    const { limit = 6 } = req.query;
+    
+    const featuredProducts = await Product.find({
+      isActive: true,
+      stockQuantity: { $gt: 0 }
+    })
+    .populate('category', 'name')
+    .sort({ soldCount: -1, createdAt: -1 })
+    .limit(parseInt(limit));
+
+    res.status(200).json({
+      success: true,
+      data: featuredProducts
+    });
+  } catch (error) {
+    console.error('Fetch featured products error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch featured products'
+    });
+  }
+});
+
+// ORDER MANAGEMENT ENDPOINTS
+
+// POST - Create New Order
+app.post('/orders', checkDBConnection, async (req, res) => {
+  try {
+    console.log('=== ORDER CREATION REQUEST ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
+    const {
+      customerInfo,
+      items,
+      deliveryDate,
+      deliveryTime,
+      specialInstructions,
+      paymentMethod = 'cash_on_delivery'
+    } = req.body;
+
+    // Basic validation
+    if (!customerInfo || !items || !Array.isArray(items) || items.length === 0) {
+      console.log('Validation failed: Missing customer info or items');
+      return res.status(400).json({
+        success: false,
+        error: 'Customer info and items are required'
+      });
+    }
+
+    // Validate customer info
+    const { name, email, phone, address } = customerInfo;
+    console.log('Customer info validation:', { name, email, phone, address });
+    
+    if (!name || !email || !phone || !address) {
+      console.log('Validation failed: Incomplete customer information');
+      return res.status(400).json({
+        success: false,
+        error: 'Complete customer information is required'
+      });
+    }
+
+    // Validate delivery date
+    if (!deliveryDate || !deliveryTime) {
+      return res.status(400).json({
+        success: false,
+        error: 'Delivery date and time are required'
+      });
+    }
+
+    const orderDate = new Date(deliveryDate);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (orderDate < tomorrow) {
+      return res.status(400).json({
+        success: false,
+        error: 'Delivery date must be at least 1 day from today'
+      });
+    }
+
+    // Validate and process items
+    let totalAmount = 0;
+    const processedItems = [];
+
+    for (const item of items) {
+      const { productId, quantity } = item;
+      
+      if (!productId || !quantity || quantity < 1) {
+        return res.status(400).json({
+          success: false,
+          error: 'Valid product ID and quantity are required for all items'
+        });
+      }
+
+      // Check if product exists and is available
+      const product = await Product.findById(productId);
+      if (!product || !product.isActive) {
+        return res.status(400).json({
+          success: false,
+          error: `Product ${productId} not found or unavailable`
+        });
+      }
+
+      // Check stock availability
+      if (product.stockQuantity < quantity) {
+        return res.status(400).json({
+          success: false,
+          error: `Insufficient stock for ${product.name}. Available: ${product.stockQuantity}, Requested: ${quantity}`
+        });
+      }
+
+      const subtotal = product.price * quantity;
+      totalAmount += subtotal;
+
+      processedItems.push({
+        product: productId,
+        name: product.name,
+        price: product.price,
+        quantity: parseInt(quantity),
+        subtotal
+      });
+    }
+
+    // Create the order
+    const order = new Order({
+      orderId: 'ORD' + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase(),
+      customerInfo: {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        address
+      },
+      items: processedItems,
+      totalAmount,
+      deliveryDate: orderDate,
+      deliveryTime,
+      specialInstructions: specialInstructions ? specialInstructions.trim() : '',
+      paymentMethod
+    });
+
+    await order.save();
+
+    // Update product stock and sold count
+    for (const item of processedItems) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: {
+          stockQuantity: -item.quantity,
+          soldCount: item.quantity
+        }
+      });
+    }
+
+    // Populate the order before sending response
+    const populatedOrder = await Order.findById(order._id).populate('items.product', 'name images category');
+
+    res.status(201).json({
+      success: true,
+      message: 'Order created successfully',
+      data: populatedOrder
+    });
+  } catch (error) {
+    console.error('Create order error:', error);
+    
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: validationErrors.join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create order'
+    });
+  }
+});
+
+// GET - Fetch All Orders (Admin)
+app.get('/orders', checkDBConnection, async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      status = '',
+      paymentStatus = '',
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    // Build filter object
+    let filter = {};
+    if (status) filter.status = status;
+    if (paymentStatus) filter.paymentStatus = paymentStatus;
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+    const orders = await Order.find(filter)
+      .populate('items.product', 'name images')
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const totalOrders = await Order.countDocuments(filter);
+    const totalPages = Math.ceil(totalOrders / parseInt(limit));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        orders,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalOrders,
+          hasNextPage: parseInt(page) < totalPages,
+          hasPrevPage: parseInt(page) > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Fetch orders error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch orders'
+    });
+  }
+});
+
+// GET - Fetch Single Order
+app.get('/orders/:id', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid order ID format'
+      });
+    }
+
+    const order = await Order.findById(id).populate('items.product', 'name images category');
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: order
+    });
+  } catch (error) {
+    console.error('Fetch order error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch order'
+    });
+  }
+});
+
+// PUT - Update Order Status
+app.put('/orders/:id', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, paymentStatus, notes } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid order ID format'
+      });
+    }
+
+    const updateData = {};
+    if (status !== undefined) updateData.status = status;
+    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
+    if (notes !== undefined) updateData.notes = notes;
+
+    const order = await Order.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate('items.product', 'name images');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Order updated successfully',
+      data: order
+    });
+  } catch (error) {
+    console.error('Update order error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update order'
+    });
+  }
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.json({ 
@@ -1469,11 +1791,16 @@ app.get('/', (req, res) => {
       'PUT /custom-orders/:id': 'Update custom order',
       'GET /products': 'Get all products with filtering',
       'GET /products/:id': 'Get single product',
+      'GET /products/featured': 'Get featured products (most sold)',
       'POST /products': 'Create new product',
       'PUT /products/:id': 'Update product',
       'DELETE /products/:id': 'Delete product',
       'POST /products/bulk-action': 'Bulk actions on products',
-      'GET /products/alerts/low-stock': 'Get low stock products'
+      'GET /products/alerts/low-stock': 'Get low stock products',
+      'POST /orders': 'Create new order',
+      'GET /orders': 'Get all orders',
+      'GET /orders/:id': 'Get single order',
+      'PUT /orders/:id': 'Update order status'
     }
   });
 });

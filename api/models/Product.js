@@ -139,6 +139,11 @@ const ProductSchema = new Schema({
         length: { type: Number, min: 0 },
         width: { type: Number, min: 0 },
         height: { type: Number, min: 0 }
+    },
+    soldCount: {
+        type: Number,
+        default: 0,
+        min: 0
     }
 }, {
     timestamps: true

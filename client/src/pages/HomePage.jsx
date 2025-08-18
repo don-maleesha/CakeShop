@@ -1,8 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Star, Award, Clock } from 'lucide-react';
+import { ArrowRight, Star, Award, Clock, Plus, Loader2 } from 'lucide-react';
+import { useCart } from '../contexts/CartContext';
 
 const HomePage = () => {
+  const { addToCart } = useCart();
+
+  const handleAddToCart = (cake) => {
+    // Create a mock product object for featured cakes
+    const product = {
+      _id: cake.name.toLowerCase().replace(/\s+/g, '-'),
+      name: cake.name,
+      description: cake.description,
+      price: parseFloat(cake.price.replace('LKR ', '').replace(',', '')),
+      images: [cake.image],
+      category: { name: 'Featured' },
+      type: 'regular',
+      stockQuantity: 10,
+      isActive: true
+    };
+    
+    try {
+      addToCart(product, 1);
+      alert(`${cake.name} added to cart!`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Failed to add item to cart. Please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -139,8 +165,12 @@ const HomePage = () => {
                   <p className="text-gray-600 mb-4">{cake.description}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-red-500">{cake.price}</span>
-                    <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
-                      Add to Cart
+                    <button 
+                      onClick={() => handleAddToCart(cake)}
+                      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center space-x-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add to Cart</span>
                     </button>
                   </div>
                 </div>

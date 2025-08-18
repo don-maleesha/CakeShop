@@ -5,11 +5,15 @@ import './App.css';
 import IndexPage from './pages/IndexPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import { UserContextProvider } from './pages/UserContext.jsx';
+import { CartProvider } from './contexts/CartContext.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import CakesPage from './pages/CakesPage.jsx';
 import CustomOrder from './pages/CustomOrder.jsx';
 import Contact from './pages/Contact.jsx';
+import CartPage from './pages/CartPage.jsx';
+import CheckoutPage from './pages/CheckoutPage.jsx';
+import OrderConfirmationPage from './pages/OrderConfirmationPage.jsx';
 
 import Layout from './Layout.jsx';
 import Users from './admin/Users';
@@ -27,53 +31,58 @@ function App() {
   return (
     <>
       <UserContextProvider>
-        <Routes>
-          {/* Admin Routes - Protected */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedAdminRoute>
-                <AdminLayout />
-              </ProtectedAdminRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="products" element={<ProductManagement />} />
-            <Route path="categories" element={<Category_management />} />
-            <Route path="users" element={<Users />} />
-            <Route path="contacts" element={<ContactManagement />} />
-          </Route>
+        <CartProvider>
+          <Routes>
+            {/* Admin Routes - Protected */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminLayout />
+                </ProtectedAdminRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="products" element={<ProductManagement />} />
+              <Route path="categories" element={<Category_management />} />
+              <Route path="users" element={<Users />} />
+              <Route path="contacts" element={<ContactManagement />} />
+            </Route>
 
-          {/* Public Routes */}
-          <Route path="/" element={<Layout />}>
-            <Route
-              index
-              element={
-                <>
-                  <RoleBasedRedirect />
-                  <HomePage />
-                </>
-              }
-            />
-            <Route path="login" element={<LoginPage />} />
-            <Route path="register" element={<RegisterPage />} />
-            <Route path="home" element={<HomePage />} />
-            <Route path="cakes" element={<CakesPage />} />
-            
-            {/* Protected User Route */}
-            <Route
-              path="custom-order"
-              element={
-                <ProtectedUserRoute>
-                  <CustomOrder />
-                </ProtectedUserRoute>
-              }
-            />
-            
-            <Route path="contact" element={<Contact />} />
-          </Route>
-        </Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Layout />}>
+              <Route
+                index
+                element={
+                  <>
+                    <RoleBasedRedirect />
+                    <HomePage />
+                  </>
+                }
+              />
+              <Route path="login" element={<LoginPage />} />
+              <Route path="register" element={<RegisterPage />} />
+              <Route path="home" element={<HomePage />} />
+              <Route path="cakes" element={<CakesPage />} />
+              <Route path="cart" element={<CartPage />} />
+              <Route path="checkout" element={<CheckoutPage />} />
+              <Route path="order-confirmation" element={<OrderConfirmationPage />} />
+              
+              {/* Protected User Route */}
+              <Route
+                path="custom-order"
+                element={
+                  <ProtectedUserRoute>
+                    <CustomOrder />
+                  </ProtectedUserRoute>
+                }
+              />
+              
+              <Route path="contact" element={<Contact />} />
+            </Route>
+          </Routes>
+        </CartProvider>
       </UserContextProvider>
     </>
   );
