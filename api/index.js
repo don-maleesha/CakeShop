@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 const User = require('./models/User');
 const Category = require('./models/Category');
 const Contact = require('./models/Contact');
@@ -23,6 +24,7 @@ app.use(cors({
   credentials: true
 }));
 
+app.use(cookieParser());
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 
@@ -331,7 +333,11 @@ app.get('/profile', checkDBConnection, async (req, res) => {
           id: userDoc._id,
           name: userDoc.name,
           email: userDoc.email,
-          role: userDoc.role
+          role: userDoc.role,
+          phone: userDoc.phone,
+          address: userDoc.address,
+          createdAt: userDoc.createdAt,
+          updatedAt: userDoc.updatedAt
         }
       });
     });
@@ -340,6 +346,194 @@ app.get('/profile', checkDBConnection, async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: 'Failed to fetch profile' 
+    });
+  }
+});
+
+// Update User Profile Endpoint
+app.put('/profile', checkDBConnection, async (req, res) => {
+  try {
+    const { token } = req.cookies;
+    if (!token) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided' 
+      });
+    }
+    
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      if (err) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Invalid token' 
+        });
+      }
+      
+      const { name, email, phone, address } = req.body;
+      
+      // Basic validation
+      if (!name || !email) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Name and email are required' 
+        });
+      }
+      
+      // Validate name length
+      const trimmedName = name.trim();
+      if (trimmedName.length < 2 || trimmedName.length > 50) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Name must be between 2 and 50 characters' 
+        });
+      }
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Please enter a valid email address' 
+        });
+      }
+      
+      // Check if email is already taken by another user
+      const emailExists = await User.findOne({ 
+        email: email.trim().toLowerCase(),
+        _id: { $ne: userData.id }
+      });
+      
+      if (emailExists) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Email is already taken by another user' 
+        });
+      }
+      
+      const updatedUser = await User.findByIdAndUpdate(
+        userData.id,
+        {
+          name: trimmedName,
+          email: email.trim().toLowerCase(),
+          phone: phone ? phone.trim() : undefined,
+          address: address ? address.trim() : undefined
+        },
+        { new: true, runValidators: true }
+      );
+      
+      if (!updatedUser) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'User not found' 
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        user: {
+          id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          phone: updatedUser.phone,
+          address: updatedUser.address,
+          createdAt: updatedUser.createdAt,
+          updatedAt: updatedUser.updatedAt
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        success: false,
+        message: validationErrors.join(', ') 
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to update profile' 
+    });
+  }
+});
+
+// Change Password Endpoint
+app.put('/change-password', checkDBConnection, async (req, res) => {
+  try {
+    const { token } = req.cookies;
+    if (!token) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided' 
+      });
+    }
+    
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      if (err) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Invalid token' 
+        });
+      }
+      
+      const { currentPassword, newPassword } = req.body;
+      
+      // Basic validation
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Current password and new password are required' 
+        });
+      }
+      
+      // Validate new password
+      if (newPassword.length < 8) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'New password must be at least 8 characters long' 
+        });
+      }
+      
+      // Get user from database
+      const userDoc = await User.findById(userData.id);
+      if (!userDoc) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'User not found' 
+        });
+      }
+      
+      // Verify current password
+      const isCurrentPasswordValid = bcrypt.compareSync(currentPassword, userDoc.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Current password is incorrect' 
+        });
+      }
+      
+      // Hash new password
+      const hashedNewPassword = bcrypt.hashSync(newPassword, bcryptSalt);
+      
+      // Update password in database
+      await User.findByIdAndUpdate(userData.id, {
+        password: hashedNewPassword
+      });
+      
+      res.json({
+        success: true,
+        message: 'Password changed successfully'
+      });
+    });
+  } catch (error) {
+    console.error('Password change error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to change password' 
     });
   }
 });
@@ -1765,7 +1959,66 @@ app.put('/orders/:id', checkDBConnection, async (req, res) => {
   }
 });
 
-// Root route
+// GET - User Statistics (Orders, Total Spent, etc.)
+app.get('/users/stats', checkDBConnection, async (req, res) => {
+  try {
+    const { token } = req.cookies;
+    if (!token) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided' 
+      });
+    }
+    
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      if (err) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Invalid token' 
+        });
+      }
+      
+      // Get user's orders
+      const userOrders = await Order.find({ 'customerInfo.email': userData.email });
+      
+      // Get user's custom orders
+      const customOrders = await CustomOrder.find({ customerEmail: userData.email });
+      
+      // Calculate statistics
+      const totalOrders = userOrders.length;
+      const totalSpent = userOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+      const totalCustomOrders = customOrders.length;
+      
+      // Get recent orders (last 5)
+      const recentOrders = userOrders
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 5);
+      
+      res.json({
+        success: true,
+        stats: {
+          totalOrders,
+          totalSpent,
+          totalCustomOrders,
+          recentOrders: recentOrders.map(order => ({
+            id: order._id,
+            orderId: order.orderId,
+            totalAmount: order.totalAmount,
+            status: order.status,
+            createdAt: order.createdAt,
+            deliveryDate: order.deliveryDate
+          }))
+        }
+      });
+    });
+  } catch (error) {
+    console.error('User stats fetch error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch user statistics' 
+    });
+  }
+});
 app.get('/', (req, res) => {
   res.json({ 
     message: 'CakeShop API Server', 
@@ -1774,6 +2027,8 @@ app.get('/', (req, res) => {
       'POST /register': 'User registration',
       'POST /login': 'User login',
       'GET /profile': 'Get user profile',
+      'PUT /profile': 'Update user profile',
+      'PUT /change-password': 'Change user password',
       'POST /logout': 'User logout',
       'POST /categories': 'Add new category',
       'GET /categories': 'Get all categories',

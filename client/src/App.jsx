@@ -14,6 +14,7 @@ import Contact from './pages/Contact.jsx';
 import CartPage from './pages/CartPage.jsx';
 import CheckoutPage from './pages/CheckoutPage.jsx';
 import OrderConfirmationPage from './pages/OrderConfirmationPage.jsx';
+import UserProfile from './pages/UserProfile.jsx';
 
 import Layout from './Layout.jsx';
 import Users from './admin/Users';
@@ -75,6 +76,16 @@ function App() {
                 element={
                   <ProtectedUserRoute>
                     <CustomOrder />
+                  </ProtectedUserRoute>
+                }
+              />
+              
+              {/* User Profile Route */}
+              <Route
+                path="profile"
+                element={
+                  <ProtectedUserRoute>
+                    <UserProfile />
                   </ProtectedUserRoute>
                 }
               />

@@ -22,6 +22,16 @@ const UserSchema = new Schema({
         required: [true, 'Password is required'],
         minlength: [8, 'Password must be at least 8 characters long']
     },
+    phone: {
+        type: String,
+        trim: true,
+        maxlength: [20, 'Phone number cannot exceed 20 characters']
+    },
+    address: {
+        type: String,
+        trim: true,
+        maxlength: [500, 'Address cannot exceed 500 characters']
+    },
     role: {
         type: String,
         enum: ['user', 'admin'],
