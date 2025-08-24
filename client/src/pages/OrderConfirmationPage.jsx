@@ -169,6 +169,19 @@ const OrderConfirmationPage = () => {
                   </p>
                 </div>
               )}
+              
+              {order.paymentMethod === 'online_transfer' && (
+                <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Online Transfer:</strong> Your payment has been processed securely through PayHere.
+                    {order.paymentDetails?.transactionId && (
+                      <span className="block mt-1">
+                        Transaction ID: {order.paymentDetails.transactionId}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -8,6 +8,18 @@
   </head>
   <body>
     <div id="root"></div>
+    <script type="text/javascript" src="https://www.payhere.lk/lib/payhere.js"></script>
+    <script>
+      // Debug PayHere loading
+      window.addEventListener('load', function() {
+        console.log('Window loaded. PayHere available:', typeof window.payhere);
+        if (window.payhere) {
+          console.log('PayHere SDK loaded successfully in HTML');
+        } else {
+          console.error('PayHere SDK failed to load in HTML');
+        }
+      });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

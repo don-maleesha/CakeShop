@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment Variables (Contains sensitive data)
+.env
+api/.env
+client/.env
+
+# Production Builds
+dist/
+build/
+*.tgz
+*.tar.gz
+
+# Runtime Files
+*.log
+logs/
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage Directory
+coverage/
+nyc_output/
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary Files
+tmp/
+temp/
+
+# Local Configuration
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# PayHere Test Files (if any contain sensitive data)
+# payhere-test.html (if it contains real credentials)
