@@ -19,20 +19,29 @@ export function UserContextProvider({ children }) {
       setUser(JSON.parse(sessionStorageUser));
       setReady(true);
     } else {
-      // Only fetch profile if no stored user exists
-      axios.get('/api/profile', { withCredentials: true }).then(({ data }) => {
-        if (data.success && data.user) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-        setReady(true);
-      }).catch(() => {
-        setUser(null); // Explicitly set to null on error
-        setReady(true); // Mark as ready even if profile fetch fails
-      });
+      // Don't make API call on initial load - just set user as null
+      // Profile will be fetched when user actually logs in
+      setUser(null);
+      setReady(true);
     }
   }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data } = await axios.get('/api/profile', { withCredentials: true });
+      if (data.success && data.user) {
+        setUser(data.user);
+        return data.user;
+      } else {
+        setUser(null);
+        return null;
+      }
+    } catch (error) {
+      console.error('Profile fetch error:', error);
+      setUser(null);
+      return null;
+    }
+  };
 
   const logout = async () => {
     try {
@@ -48,7 +57,7 @@ export function UserContextProvider({ children }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, ready, logout }}>
+    <UserContext.Provider value={{ user, setUser, ready, logout, fetchUserProfile }}>
       {children}
     </UserContext.Provider>
   );

@@ -111,15 +111,20 @@ export default function Header() {
                         <Link 
                           to="/admin/dashboard" 
                           className="block px-4 py-2 text-purple-600 hover:bg-gray-100 transition-colors font-medium"
+                          onClick={() => setShowDropdown(false)}
                         >
                           🔧 Admin Panel
                         </Link>
                         <hr className="my-2 border-gray-200" />
                       </>
                     )}
-                    <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors">
+                    <Link 
+                      to="/profile" 
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                      onClick={() => setShowDropdown(false)}
+                    >
                       Profile
-                    </a>
+                    </Link>
                     <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors">
                       My Orders
                     </a>
