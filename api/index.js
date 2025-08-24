@@ -10,6 +10,7 @@ const CustomOrder = require('./models/CustomOrder');
 const Product = require('./models/Product');
 const Order = require('./models/Order');
 const { sendEmail, createContactReplyTemplate } = require('./services/emailService');
+const paymentRoutes = require('./routes/payment');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 
@@ -27,6 +28,9 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '200mb' }));
 app.use(express.urlencoded({ extended: true, limit: '200mb' }));
+
+// Payment routes
+app.use('/payment', paymentRoutes);
 
 // Add request logging middleware
 app.use((req, res, next) => {
@@ -1770,6 +1774,16 @@ app.post('/orders', checkDBConnection, async (req, res) => {
       });
     }
 
+    // Calculate delivery fee (same logic as frontend)
+    const deliveryFee = totalAmount >= 9000 ? 0 : 500;
+    const finalTotalAmount = totalAmount + deliveryFee;
+
+    console.log('Order calculation:', {
+      subtotal: totalAmount,
+      deliveryFee: deliveryFee,
+      finalTotal: finalTotalAmount
+    });
+
     // Create the order
     const order = new Order({
       orderId: 'ORD' + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase(),
@@ -1780,7 +1794,7 @@ app.post('/orders', checkDBConnection, async (req, res) => {
         address
       },
       items: processedItems,
-      totalAmount,
+      totalAmount: finalTotalAmount,
       deliveryDate: orderDate,
       deliveryTime,
       specialInstructions: specialInstructions ? specialInstructions.trim() : '',

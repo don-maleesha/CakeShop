@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, CreditCard, MapPin, User, Mail, Phone, ShoppingBag } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import UserContext from '../pages/UserContext';
+import PayHereForm from '../components/PayHereForm';
 import axios from 'axios';
 
 const CheckoutPage = () => {
@@ -11,6 +12,7 @@ const CheckoutPage = () => {
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
+  const [paymentData, setPaymentData] = useState(null);
   const [orderData, setOrderData] = useState({
     customerInfo: {
       name: user?.name || '',
@@ -31,6 +33,34 @@ const CheckoutPage = () => {
 
   const deliveryFee = cartTotal >= 9000 ? 0 : 500;
   const totalAmount = cartTotal + deliveryFee;
+
+  // PayHere form handlers
+  const handlePaymentSuccess = (orderId) => {
+    console.log("Payment completed. OrderID:" + orderId);
+    
+    // Clear cart after successful payment
+    clearCart();
+    
+    setPaymentData(null);
+    navigate('/payment/success', { 
+      state: { 
+        orderNumber: orderId 
+      } 
+    });
+  };
+
+  const handlePaymentError = (error) => {
+    console.log("PayHere Error: " + error);
+    setPaymentData(null);
+    alert('Payment error: ' + error);
+    navigate('/payment/cancel');
+  };
+
+  const handlePaymentCancel = () => {
+    console.log("Payment dismissed");
+    setPaymentData(null);
+    navigate('/payment/cancel');
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -69,6 +99,11 @@ const CheckoutPage = () => {
     e.preventDefault();
     setLoading(true);
 
+    console.log('=== CHECKOUT FORM SUBMITTED ===');
+    console.log('Order data:', JSON.stringify(orderData, null, 2));
+    console.log('Payment method selected:', orderData.paymentMethod);
+    console.log('Cart items:', items);
+
     try {
       // Prepare order items in the format expected by the API
       const orderItems = items.map(item => ({
@@ -91,16 +126,60 @@ const CheckoutPage = () => {
       const response = await axios.post('http://localhost:4000/orders', orderPayload);
       
       if (response.data.success) {
-        // Clear cart after successful order
-        clearCart();
+        console.log('Order created successfully:', response.data.data);
         
-        // Redirect to order confirmation
-        navigate('/order-confirmation', { 
-          state: { 
-            order: response.data.data,
-            orderNumber: response.data.data.orderId 
-          } 
-        });
+        // If online payment, use PayHere JavaScript SDK
+        if (orderData.paymentMethod === 'online_transfer') {
+          console.log('Online payment method detected. Initializing PayHere...');
+          
+          try {
+            console.log('Requesting payment initialization for orderId:', response.data.data.orderId);
+            
+            const paymentResponse = await axios.post('http://localhost:4000/payment/initialize', {
+              orderId: response.data.data.orderId
+            });
+
+            console.log('Payment response received:', paymentResponse.data);
+
+            if (paymentResponse.data.success) {
+              const paymentFormData = paymentResponse.data.data;
+              console.log('Payment data received:', JSON.stringify(paymentFormData, null, 2));
+              
+              // Show PayHere form (don't clear cart yet - wait for payment completion)
+              console.log('Setting payment data for PayHere form:', paymentFormData);
+              console.log('PaymentData state before setting:', paymentData);
+              setPaymentData(paymentFormData);
+              console.log('setPaymentData called successfully');
+              
+              // Debug: Check if paymentData state was set
+              setTimeout(() => {
+                console.log('PaymentData state after setting (delayed check):', paymentData);
+              }, 100);
+              
+              return;
+            } else {
+              throw new Error(paymentResponse.data.error || 'Failed to initialize payment');
+            }
+          } catch (paymentError) {
+            console.error('Payment initialization error:', paymentError);
+            const errorMessage = paymentError.response?.data?.error ||
+              paymentError.message ||
+              'Failed to initialize payment. Please try again.';
+            alert('Payment initialization failed: ' + errorMessage);
+            return;
+          }
+        } else {
+          console.log('Cash on delivery method selected');
+          // Clear cart after successful cash on delivery order
+          clearCart();
+          // Redirect to order confirmation
+          navigate('/order-confirmation', {
+            state: {
+              order: response.data.data,
+              orderNumber: response.data.data.orderId
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Order submission error:', error);
@@ -364,12 +443,12 @@ const CheckoutPage = () => {
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="bank_transfer"
-                      checked={orderData.paymentMethod === 'bank_transfer'}
+                      value="online_transfer"
+                      checked={orderData.paymentMethod === 'online_transfer'}
                       onChange={handleInputChange}
                       className="text-red-600 focus:ring-red-500"
                     />
-                    <span className="ml-3">Bank Transfer</span>
+                    <span className="ml-3">Online Transfer (PayHere)</span>
                   </label>
                 </div>
               </div>
@@ -446,6 +525,25 @@ const CheckoutPage = () => {
             </div>
           </div>
         </form>
+
+        {/* PayHere Payment Form */}
+        {paymentData && (
+          <PayHereForm
+            paymentData={paymentData}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+            onCancel={handlePaymentCancel}
+          />
+        )}
+
+        {/* Debug info - remove in production */}
+        {import.meta.env.DEV && (
+          <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-3 rounded text-xs max-w-sm">
+            <p><strong>Debug Info:</strong></p>
+            <p>Payment Data: {paymentData ? 'SET' : 'NULL'}</p>
+            {paymentData && <p>Order ID: {paymentData.order_id}</p>}
+          </div>
+        )}
       </div>
     </div>
   );

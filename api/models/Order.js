@@ -81,8 +81,15 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['cash_on_delivery', 'bank_transfer', 'card', 'online'],
+    enum: ['cash_on_delivery', 'online_transfer'],
     default: 'cash_on_delivery'
+  },
+  paymentDetails: {
+    paymentId: String,
+    paymentDate: Date,
+    paymentAmount: Number,
+    paymentGateway: String,
+    transactionId: String
   },
   deliveryDate: {
     type: Date,

@@ -14,6 +14,8 @@ import Contact from './pages/Contact.jsx';
 import CartPage from './pages/CartPage.jsx';
 import CheckoutPage from './pages/CheckoutPage.jsx';
 import OrderConfirmationPage from './pages/OrderConfirmationPage.jsx';
+import PaymentSuccessPage from './pages/PaymentSuccessPage.jsx';
+import PaymentCancelPage from './pages/PaymentCancelPage.jsx';
 import UserProfile from './pages/UserProfile.jsx';
 
 import Layout from './Layout.jsx';
@@ -69,6 +71,8 @@ function App() {
               <Route path="cart" element={<CartPage />} />
               <Route path="checkout" element={<CheckoutPage />} />
               <Route path="order-confirmation" element={<OrderConfirmationPage />} />
+              <Route path="payment/success" element={<PaymentSuccessPage />} />
+              <Route path="payment/cancel" element={<PaymentCancelPage />} />
               
               {/* Protected User Route */}
               <Route
