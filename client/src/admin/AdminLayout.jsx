@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { IoAccessibility, IoBarChartSharp, IoBagCheck, IoFastFood } from "react-icons/io5";
+import { IoAccessibility, IoBarChartSharp, IoBagCheck, IoFastFood, IoCubeOutline } from "react-icons/io5";
 import { AiFillDashboard, AiFillHdd } from "react-icons/ai";
 import { HiUsers } from "react-icons/hi";
 import { HiLogout } from "react-icons/hi";
@@ -20,6 +20,7 @@ function AdminLayout() {
     { name: 'Dashboard', path: '/admin/dashboard', icon: <AiFillDashboard /> },
     { name: 'Products', path: '/admin/products', icon: <IoBagCheck /> },
     { name: 'Orders', path: '/admin/orders', icon: <IoFastFood /> },
+    { name: 'Custom Orders', path: '/admin/custom-orders', icon: <IoCubeOutline /> },
     { name: 'Categories', path: '/admin/categories', icon: <AiFillHdd /> },
     { name: 'Analytics', path: '/admin/analytics', icon: <IoBarChartSharp /> },
     { name: 'Users', path: '/admin/users', icon: <HiUsers /> },

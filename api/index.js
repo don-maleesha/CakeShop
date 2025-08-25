@@ -10,6 +10,7 @@ const CustomOrder = require('./models/CustomOrder');
 const Product = require('./models/Product');
 const Order = require('./models/Order');
 const { sendEmail, createContactReplyTemplate } = require('./services/emailService');
+const { createAdvancePaymentRequestTemplate } = require('./services/customOrderEmailService');
 const paymentRoutes = require('./routes/payment');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
@@ -907,16 +908,61 @@ app.get('/contact', checkDBConnection, async (req, res) => {
 // GET - Fetch All Custom Orders (Admin)
 app.get('/custom-orders', checkDBConnection, async (req, res) => {
   try {
-    const customOrders = await CustomOrder.find().sort({ createdAt: -1 });
+    const { status, customerEmail } = req.query;
+    
+    // Build filter query
+    let filter = {};
+    if (status) filter.status = status;
+    if (customerEmail) filter.customerEmail = customerEmail.toLowerCase();
+    
+    console.log('Fetching custom orders with filter:', filter);
+    
+    const customOrders = await CustomOrder.find(filter).sort({ createdAt: -1 });
+    
+    console.log(`Found ${customOrders.length} custom orders`);
+    
     res.status(200).json({
       success: true,
-      customOrders
+      orders: customOrders
     });
   } catch (error) {
     console.error('Fetch custom orders error:', error);
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch custom orders' 
+    });
+  }
+});
+
+// GET - Fetch customer's own custom orders
+app.get('/my-custom-orders', checkDBConnection, async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email parameter is required'
+      });
+    }
+    
+    console.log('Fetching custom orders for customer:', email);
+    
+    const orders = await CustomOrder.find({ 
+      customerEmail: email.toLowerCase() 
+    }).sort({ createdAt: -1 });
+    
+    console.log(`Found ${orders.length} custom orders for customer`);
+    
+    res.status(200).json({
+      success: true,
+      orders: orders
+    });
+  } catch (error) {
+    console.error('Fetch customer custom orders error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch your custom orders'
     });
   }
 });
@@ -1041,7 +1087,7 @@ app.post('/contact/:id/reply', checkDBConnection, async (req, res) => {
 app.put('/custom-orders/:id', checkDBConnection, async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, estimatedPrice, notes } = req.body;
+    const { status, estimatedPrice, advanceAmount, advancePaymentStatus, adminNotes, notes } = req.body;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ 
@@ -1052,7 +1098,18 @@ app.put('/custom-orders/:id', checkDBConnection, async (req, res) => {
     
     const updateData = { status };
     if (estimatedPrice !== undefined) updateData.estimatedPrice = estimatedPrice;
+    if (advanceAmount !== undefined) {
+      updateData.advanceAmount = advanceAmount;
+      // If setting advance amount > 0, set payment status to pending
+      if (advanceAmount > 0) {
+        updateData.advancePaymentStatus = 'pending';
+      }
+    }
+    if (advancePaymentStatus !== undefined) updateData.advancePaymentStatus = advancePaymentStatus;
+    if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
     if (notes !== undefined) updateData.notes = notes;
+    
+    console.log('Updating custom order with data:', updateData);
     
     const customOrder = await CustomOrder.findByIdAndUpdate(
       id, 
@@ -1067,16 +1124,76 @@ app.put('/custom-orders/:id', checkDBConnection, async (req, res) => {
       });
     }
     
+    console.log('Custom order updated successfully:', {
+      orderId: customOrder.orderId,
+      paymentOrderId: customOrder.paymentOrderId,
+      advanceAmount: customOrder.advanceAmount,
+      advancePaymentStatus: customOrder.advancePaymentStatus
+    });
+    
     res.status(200).json({ 
       success: true,
       message: 'Custom order updated successfully',
-      customOrder
+      order: customOrder
     });
   } catch (error) {
     console.error('Update custom order error:', error);
     res.status(500).json({ 
       success: false,
       error: 'Failed to update custom order' 
+    });
+  }
+});
+
+// POST - Send notification email for custom order advance payment
+app.post('/custom-orders/:id/notify', checkDBConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject, message } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid order ID format' 
+      });
+    }
+    
+    const order = await CustomOrder.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Custom order not found'
+      });
+    }
+
+    // Create beautiful HTML email template
+    const emailTemplate = createAdvancePaymentRequestTemplate(order);
+    
+    // Send email using the beautiful HTML template
+    const emailResult = await sendEmail(
+      order.customerEmail,
+      emailTemplate.subject,
+      emailTemplate.html
+    );
+
+    if (emailResult.success) {
+      res.json({
+        success: true,
+        message: 'Notification email sent successfully',
+        isMock: emailResult.isMock || false
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to send notification email: ' + emailResult.error
+      });
+    }
+
+  } catch (error) {
+    console.error('Email notification error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send notification email'
     });
   }
 });

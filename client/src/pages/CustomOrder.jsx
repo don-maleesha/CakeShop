@@ -1,12 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-import { IoPerson, IoCalendar, IoRestaurant, IoTime, IoMail, IoCall } from 'react-icons/io5';
+import { IoPerson, IoCalendar, IoRestaurant, IoTime, IoMail, IoCall, IoCash, IoCard } from 'react-icons/io5';
+import UserContext from './UserContext.jsx';
+import PayHereForm from '../components/PayHereForm.jsx';
 
 export default function CustomOrder() {
+  const { user } = useContext(UserContext);
   const [formData, setFormData] = useState({
-    customerName: '',
-    customerEmail: '',
+    customerName: user?.name || '',
+    customerEmail: user?.email || '',
     customerPhone: '',
     eventType: '',
     cakeSize: '',
@@ -16,6 +19,39 @@ export default function CustomOrder() {
   });
   
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [previousOrders, setPreviousOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [paymentData, setPaymentData] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Update form data when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        customerName: user.name || prev.customerName,
+        customerEmail: user.email || prev.customerEmail
+      }));
+    }
+  }, [user]);
+
+  // Fetch user's previous custom orders
+  useEffect(() => {
+    if (user?.email) {
+      fetchPreviousOrders();
+    }
+  }, [user]);
+
+  const fetchPreviousOrders = async () => {
+    try {
+      const response = await axios.get(`http://localhost:4000/my-custom-orders?email=${user.email}`);
+      if (response.data.success) {
+        setPreviousOrders(response.data.orders);
+      }
+    } catch (error) {
+      console.error('Error fetching previous orders:', error);
+    }
+  };
 
   const handleInputChange = (e) => {
     setFormData({
@@ -26,6 +62,7 @@ export default function CustomOrder() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     
     try {
       const response = await axios.post('http://localhost:4000/custom-orders', {
@@ -42,11 +79,118 @@ export default function CustomOrder() {
       if (response.data.success) {
         console.log('Custom order submitted:', response.data);
         setIsSubmitted(true);
+        // Refresh previous orders
+        if (user?.email) {
+          fetchPreviousOrders();
+        }
       }
     } catch (error) {
       console.error('Custom order submission error:', error);
       alert(error.response?.data?.error || 'Failed to submit order. Please try again.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handlePayAdvance = async (order) => {
+    setLoading(true);
+    try {
+      const response = await axios.post('http://localhost:4000/payment/initialize-custom-order', {
+        customOrderId: order.orderId
+      });
+
+      if (response.data.success) {
+        setPaymentData(response.data.data);
+        setSelectedOrder(order);
+      } else {
+        alert(response.data.error || 'Failed to initialize payment');
+      }
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      alert(error.response?.data?.error || 'Failed to initialize payment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentSuccess = async (orderId) => {
+    console.log('Payment successful for order:', orderId);
+    setPaymentData(null);
+    setSelectedOrder(null);
+    
+    try {
+      // Automatically confirm payment status when PayHere reports success
+      console.log('Auto-confirming payment for order:', orderId);
+      const response = await axios.post('http://localhost:4000/payment/confirm-payment', {
+        orderId: orderId,
+        paymentId: `AUTO_${Date.now()}`,
+        transactionDetails: { auto_confirmed: true, confirmed_at: new Date().toISOString() }
+      });
+
+      if (response.data.success) {
+        console.log('Payment status automatically updated to paid');
+        // Refresh orders to show updated payment status
+        await fetchPreviousOrders();
+        alert('Payment successful! Your advance payment has been processed.');
+      } else {
+        console.error('Failed to auto-confirm payment:', response.data.error);
+        alert('Payment successful, but status update failed. Please contact admin.');
+      }
+    } catch (error) {
+      console.error('Error auto-confirming payment:', error);
+      alert('Payment successful, but status update failed. Please contact admin.');
+    }
+  };
+
+  const handlePaymentError = (error) => {
+    console.error('Payment error:', error);
+    setPaymentData(null);
+    setSelectedOrder(null);
+    alert('Payment failed. Please try again or contact support.');
+  };
+
+  const handlePaymentCancel = () => {
+    console.log('Payment cancelled');
+    setPaymentData(null);
+    setSelectedOrder(null);
+  };
+
+  const getStatusBadge = (status) => {
+    const statusStyles = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      confirmed: 'bg-blue-100 text-blue-800',
+      'in-progress': 'bg-purple-100 text-purple-800',
+      completed: 'bg-green-100 text-green-800',
+      cancelled: 'bg-red-100 text-red-800'
+    };
+    
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status]}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
+      </span>
+    );
+  };
+
+  const getPaymentStatusBadge = (status) => {
+    const statusStyles = {
+      not_required: 'bg-gray-100 text-gray-800',
+      pending: 'bg-yellow-100 text-yellow-800',
+      paid: 'bg-green-100 text-green-800',
+      failed: 'bg-red-100 text-red-800'
+    };
+    
+    const statusText = {
+      not_required: 'No Advance Required',
+      pending: 'Advance Payment Pending',
+      paid: 'Advance Payment Completed',
+      failed: 'Payment Failed'
+    };
+    
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status]}`}>
+        {statusText[status]}
+      </span>
+    );
   };
 
   const eventTypes = [
@@ -158,9 +302,18 @@ export default function CustomOrder() {
                         value={formData.customerName}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
+                        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 ${
+                          user?.name ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
                         placeholder="Enter your full name"
+                        disabled={!!user?.name}
+                        readOnly={!!user?.name}
                       />
+                      {user?.name && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Name is locked to your account name
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -172,9 +325,18 @@ export default function CustomOrder() {
                         value={formData.customerEmail}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"
+                        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 ${
+                          user?.email ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
                         placeholder="Enter your email"
+                        disabled={!!user?.email}
+                        readOnly={!!user?.email}
                       />
+                      {user?.email && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Email is locked to your account email
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="mt-4">
@@ -295,9 +457,14 @@ export default function CustomOrder() {
 
                 <button
                   type="submit"
-                  className="w-full bg-red-500 text-white py-4 rounded-lg font-medium hover:bg-red-600 transition-colors"
+                  disabled={loading}
+                  className={`w-full py-4 rounded-lg font-medium transition-colors ${
+                    loading 
+                      ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+                      : 'bg-red-500 text-white hover:bg-red-600'
+                  }`}
                 >
-                  Submit Custom Order Request
+                  {loading ? 'Submitting...' : 'Submit Custom Order Request'}
                 </button>
               </form>
             </div>
@@ -353,6 +520,113 @@ export default function CustomOrder() {
             </div>
           </div>
         </div>
+
+        {/* Previous Custom Orders Section */}
+        {user && previousOrders.length > 0 && (
+          <div className="mt-12">
+            <div className="bg-white rounded-lg shadow-md p-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Your Previous Custom Orders</h2>
+              
+              <div className="space-y-6">
+                {previousOrders.map((order) => (
+                  <div key={order._id} className="border border-gray-200 rounded-lg p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-semibold text-lg text-gray-900">Order #{order.orderId}</h3>
+                        <p className="text-gray-600">Created: {new Date(order.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        {getStatusBadge(order.status)}
+                        <div className="mt-1">
+                          {getPaymentStatusBadge(order.advancePaymentStatus)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm mb-4">
+                      <div>
+                        <span className="font-medium text-gray-700">Event:</span>
+                        <p className="text-gray-600">{order.eventType}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Size:</span>
+                        <p className="text-gray-600">{order.cakeSize}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Flavor:</span>
+                        <p className="text-gray-600">{order.flavor}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Delivery Date:</span>
+                        <p className="text-gray-600">{new Date(order.deliveryDate).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+
+                    {order.specialRequirements && (
+                      <div className="mb-4">
+                        <span className="font-medium text-gray-700">Special Requirements:</span>
+                        <p className="text-gray-600 mt-1">{order.specialRequirements}</p>
+                      </div>
+                    )}
+
+                    {order.estimatedPrice && (
+                      <div className="flex items-center justify-between bg-gray-50 rounded p-3 mb-4">
+                        <div>
+                          <span className="font-medium text-gray-700">Estimated Price: </span>
+                          <span className="text-lg font-semibold text-gray-900">LKR {order.estimatedPrice}</span>
+                          {order.advanceAmount > 0 && (
+                            <div className="text-sm text-gray-600">
+                              Advance Required: LKR {order.advanceAmount}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {order.advancePaymentStatus === 'pending' && order.advanceAmount > 0 && (
+                          <button
+                            onClick={() => handlePayAdvance(order)}
+                            disabled={loading}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center ${
+                              loading 
+                                ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+                                : 'bg-green-500 text-white hover:bg-green-600'
+                            }`}
+                          >
+                            <IoCash className="w-4 h-4 mr-2" />
+                            {loading ? 'Processing...' : 'Pay Advance'}
+                          </button>
+                        )}
+
+                        {order.advancePaymentStatus === 'paid' && (
+                          <div className="flex items-center text-green-600">
+                            <IoCard className="w-4 h-4 mr-2" />
+                            <span className="font-medium">Advance Payment Completed</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {order.adminNotes && (
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                        <span className="font-medium text-blue-900">Admin Notes:</span>
+                        <p className="text-blue-800 mt-1">{order.adminNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PayHere Payment Form */}
+        {paymentData && (
+          <PayHereForm
+            paymentData={paymentData}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+            onCancel={handlePaymentCancel}
+          />
+        )}
       </div>
     </div>
   );
