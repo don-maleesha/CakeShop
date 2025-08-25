@@ -91,7 +91,33 @@ const customOrderSchema = new mongoose.Schema({
     type: Number,
     min: 0
   },
+  advanceAmount: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  advancePaymentStatus: {
+    type: String,
+    enum: ['not_required', 'pending', 'paid', 'failed'],
+    default: 'not_required'
+  },
+  advancePaymentDetails: {
+    paymentId: String,
+    paymentDate: Date,
+    paymentAmount: Number,
+    paymentGateway: String,
+    transactionId: String
+  },
+  paymentOrderId: {
+    type: String,
+    unique: true,
+    sparse: true // Allows null values but ensures uniqueness when set
+  },
   notes: {
+    type: String,
+    trim: true
+  },
+  adminNotes: {
     type: String,
     trim: true
   }
@@ -104,8 +130,14 @@ customOrderSchema.pre('save', function(next) {
   if (!this.orderId) {
     this.orderId = 'CO' + Date.now().toString().slice(-6);
   }
+  
+  // Generate payment order ID when advance payment is required
+  if (this.advanceAmount > 0 && this.advancePaymentStatus === 'pending' && !this.paymentOrderId) {
+    this.paymentOrderId = 'PAY' + this.orderId + '-ADV';
+    console.log('Generated paymentOrderId:', this.paymentOrderId, 'for order:', this.orderId);
+  }
+  
   next();
 });
 
-module.exports = mongoose.model('CustomOrder', customOrderSchema);
 module.exports = mongoose.model('CustomOrder', customOrderSchema);
