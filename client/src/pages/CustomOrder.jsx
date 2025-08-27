@@ -118,28 +118,10 @@ export default function CustomOrder() {
     setPaymentData(null);
     setSelectedOrder(null);
     
-    try {
-      // Automatically confirm payment status when PayHere reports success
-      console.log('Auto-confirming payment for order:', orderId);
-      const response = await axios.post('http://localhost:4000/payment/confirm-payment', {
-        orderId: orderId,
-        paymentId: `AUTO_${Date.now()}`,
-        transactionDetails: { auto_confirmed: true, confirmed_at: new Date().toISOString() }
-      });
-
-      if (response.data.success) {
-        console.log('Payment status automatically updated to paid');
-        // Refresh orders to show updated payment status
-        await fetchPreviousOrders();
-        alert('Payment successful! Your advance payment has been processed.');
-      } else {
-        console.error('Failed to auto-confirm payment:', response.data.error);
-        alert('Payment successful, but status update failed. Please contact admin.');
-      }
-    } catch (error) {
-      console.error('Error auto-confirming payment:', error);
-      alert('Payment successful, but status update failed. Please contact admin.');
-    }
+    // Refresh orders to show updated payment status
+    await fetchPreviousOrders();
+    
+    alert('Payment successful! Your advance payment has been processed.');
   };
 
   const handlePaymentError = (error) => {
@@ -182,7 +164,7 @@ export default function CustomOrder() {
     const statusText = {
       not_required: 'No Advance Required',
       pending: 'Advance Payment Pending',
-      paid: 'Advance Payment Completed',
+      paid: 'Advance Paid',
       failed: 'Payment Failed'
     };
     
@@ -599,7 +581,7 @@ export default function CustomOrder() {
                         {order.advancePaymentStatus === 'paid' && (
                           <div className="flex items-center text-green-600">
                             <IoCard className="w-4 h-4 mr-2" />
-                            <span className="font-medium">Advance Payment Completed</span>
+                            <span className="font-medium">Advance Paid</span>
                           </div>
                         )}
                       </div>
