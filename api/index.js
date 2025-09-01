@@ -1951,6 +1951,265 @@ app.get('/users/stats', checkDBConnection, async (req, res) => {
     });
   }
 });
+// ANALYTICS ENDPOINTS
+
+// GET - Revenue Analytics
+app.get('/analytics/revenue', checkDBConnection, async (req, res) => {
+  try {
+    const { startDate, endDate, status = 'all', period = 'all' } = req.query;
+    
+    // Build match criteria
+    const matchCriteria = {};
+    
+    // Date filtering
+    if (startDate && endDate) {
+      matchCriteria.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    } else if (period !== 'all') {
+      const endDate = new Date();
+      const startDate = new Date();
+      
+      switch (period) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        case 'week':
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(startDate.getMonth() - 1);
+          break;
+        case 'year':
+          startDate.setFullYear(startDate.getFullYear() - 1);
+          break;
+      }
+      
+      matchCriteria.createdAt = {
+        $gte: startDate,
+        $lte: endDate
+      };
+    }
+    
+    // Status filtering
+    if (status !== 'all') {
+      matchCriteria.status = status;
+    }
+    
+    // Aggregate revenue data
+    const [paidOrdersData, pendingOrdersData, allOrdersData] = await Promise.all([
+      // Paid orders (actual revenue)
+      Order.aggregate([
+        { 
+          $match: { 
+            ...matchCriteria, 
+            paymentStatus: 'paid' 
+          } 
+        },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: '$totalAmount' },
+            totalOrders: { $sum: 1 },
+            averageOrderValue: { $avg: '$totalAmount' },
+            maxOrderValue: { $max: '$totalAmount' },
+            minOrderValue: { $min: '$totalAmount' }
+          }
+        }
+      ]),
+      
+      // Pending payment orders
+      Order.aggregate([
+        { 
+          $match: { 
+            ...matchCriteria, 
+            paymentStatus: 'pending' 
+          } 
+        },
+        {
+          $group: {
+            _id: null,
+            pendingRevenue: { $sum: '$totalAmount' },
+            pendingOrders: { $sum: 1 }
+          }
+        }
+      ]),
+      
+      // All orders for comparison
+      Order.aggregate([
+        { $match: matchCriteria },
+        {
+          $group: {
+            _id: null,
+            totalOrderValue: { $sum: '$totalAmount' },
+            totalOrderCount: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
+    
+    // Format response
+    const paidData = paidOrdersData[0] || {
+      totalRevenue: 0,
+      totalOrders: 0,
+      averageOrderValue: 0,
+      maxOrderValue: 0,
+      minOrderValue: 0
+    };
+    
+    const pendingData = pendingOrdersData[0] || {
+      pendingRevenue: 0,
+      pendingOrders: 0
+    };
+    
+    const allData = allOrdersData[0] || {
+      totalOrderValue: 0,
+      totalOrderCount: 0
+    };
+    
+    res.json({
+      success: true,
+      data: {
+        // Confirmed revenue (paid orders only)
+        confirmedRevenue: Math.round(paidData.totalRevenue),
+        confirmedOrders: paidData.totalOrders,
+        averageOrderValue: Math.round(paidData.averageOrderValue),
+        
+        // Pending revenue
+        pendingRevenue: Math.round(pendingData.pendingRevenue),
+        pendingOrders: pendingData.pendingOrders,
+        
+        // Total potential revenue
+        totalPotentialRevenue: Math.round(allData.totalOrderValue),
+        totalOrders: allData.totalOrderCount,
+        
+        // Additional metrics
+        revenueRealizationRate: allData.totalOrderValue > 0 
+          ? Math.round((paidData.totalRevenue / allData.totalOrderValue) * 100) 
+          : 0,
+        
+        // Order value distribution
+        orderValueStats: {
+          highest: Math.round(paidData.maxOrderValue || 0),
+          lowest: Math.round(paidData.minOrderValue || 0),
+          average: Math.round(paidData.averageOrderValue || 0)
+        },
+        
+        // Metadata
+        period: period,
+        dateRange: matchCriteria.createdAt ? {
+          from: matchCriteria.createdAt.$gte,
+          to: matchCriteria.createdAt.$lte
+        } : null,
+        generatedAt: new Date()
+      }
+    });
+    
+  } catch (error) {
+    console.error('Revenue analytics error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch revenue analytics'
+    });
+  }
+});
+
+// GET - Dashboard Analytics Summary
+app.get('/analytics/dashboard', checkDBConnection, async (req, res) => {
+  try {
+    const [revenueData, productStats, orderStats] = await Promise.all([
+      // Revenue data
+      Order.aggregate([
+        { $match: { paymentStatus: 'paid' } },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: '$totalAmount' },
+            totalPaidOrders: { $sum: 1 },
+            averageOrderValue: { $avg: '$totalAmount' }
+          }
+        }
+      ]),
+      
+      // Product statistics
+      Product.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalProducts: { $sum: 1 },
+            activeProducts: {
+              $sum: { $cond: ['$isActive', 1, 0] }
+            },
+            lowStockProducts: {
+              $sum: { 
+                $cond: [
+                  { $lte: ['$stockQuantity', '$lowStockThreshold'] },
+                  1,
+                  0
+                ]
+              }
+            },
+            featuredProducts: {
+              $sum: { $cond: ['$isFeatured', 1, 0] }
+            }
+          }
+        }
+      ]),
+      
+      // Order statistics
+      Order.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            pendingOrders: {
+              $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
+            },
+            pendingPayments: {
+              $sum: { $cond: [{ $eq: ['$paymentStatus', 'pending'] }, 1, 0] }
+            }
+          }
+        }
+      ])
+    ]);
+    
+    const revenue = revenueData[0] || { totalRevenue: 0, totalPaidOrders: 0, averageOrderValue: 0 };
+    const products = productStats[0] || { totalProducts: 0, activeProducts: 0, lowStockProducts: 0, featuredProducts: 0 };
+    const orders = orderStats[0] || { totalOrders: 0, pendingOrders: 0, pendingPayments: 0 };
+    
+    res.json({
+      success: true,
+      data: {
+        revenue: {
+          total: Math.round(revenue.totalRevenue),
+          paidOrders: revenue.totalPaidOrders,
+          averageOrderValue: Math.round(revenue.averageOrderValue)
+        },
+        products: {
+          total: products.totalProducts,
+          active: products.activeProducts,
+          lowStock: products.lowStockProducts,
+          featured: products.featuredProducts
+        },
+        orders: {
+          total: orders.totalOrders,
+          pending: orders.pendingOrders,
+          pendingPayments: orders.pendingPayments
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('Dashboard analytics error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch dashboard analytics'
+    });
+  }
+});
+
 app.get('/', (req, res) => {
   res.json({ 
     message: 'CakeShop API Server', 
