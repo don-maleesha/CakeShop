@@ -12,6 +12,7 @@ const Order = require('./models/Order');
 const { sendEmail, createContactReplyTemplate } = require('./services/emailService');
 const { createAdvancePaymentRequestTemplate } = require('./services/customOrderEmailService');
 const paymentRoutes = require('./routes/payment');
+const { BusinessLogic } = require('./business/BusinessLogicFacade');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 
@@ -22,7 +23,7 @@ const bcryptSalt = bcrypt.genSaltSync(12);
 const jwtSecret = process.env.JWT_SECRET || 'defaultsecretkey';
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'], // No trailing slash
   credentials: true
 }));
 
@@ -788,102 +789,38 @@ app.post('/contact', checkDBConnection, async (req, res) => {
   }
 });
 
-// POST - Submit Custom Order
+// POST - Submit Custom Order (Using Business Logic)
 app.post('/custom-orders', checkDBConnection, async (req, res) => {
   try {
-    const { 
-      customerName, 
-      customerEmail, 
-      customerPhone, 
-      eventType, 
-      cakeSize, 
-      flavor, 
-      specialRequirements, 
-      deliveryDate 
-    } = req.body;
+    console.log('=== CUSTOM ORDER CREATION REQUEST ===');
     
-    // Basic validation
-    if (!customerName || !customerEmail || !customerPhone || !eventType || !cakeSize || !flavor || !deliveryDate) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'All required fields must be filled' 
-      });
-    }
-    
-    // Validate name length
-    const trimmedName = customerName.trim();
-    if (trimmedName.length < 2 || trimmedName.length > 50) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Name must be between 2 and 50 characters' 
-      });
-    }
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(customerEmail.trim())) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Please enter a valid email address' 
-      });
-    }
-    
-    // Validate delivery date (must be at least 7 days from now)
-    const orderDate = new Date(deliveryDate);
-    const sevenDaysFromNow = new Date();
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-    
-    if (orderDate < sevenDaysFromNow) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Delivery date must be at least 7 days from today' 
-      });
-    }
-    
-    const customOrder = new CustomOrder({
-      customerName: trimmedName,
-      customerEmail: customerEmail.trim().toLowerCase(),
-      customerPhone: customerPhone.trim(),
-      eventType,
-      cakeSize,
-      flavor,
-      specialRequirements: specialRequirements ? specialRequirements.trim() : '',
-      deliveryDate: orderDate
-    });
-    
-    await customOrder.save();
+    // Use business logic layer for custom order creation
+    const result = await BusinessLogic.createCustomOrder(req.body);
     
     res.status(201).json({ 
       success: true,
       message: 'Custom order submitted successfully',
-      orderId: customOrder.orderId,
+      orderId: result.customOrder.orderId,
       customOrder: {
-        id: customOrder._id,
-        orderId: customOrder.orderId,
-        customerName: customOrder.customerName,
-        customerEmail: customOrder.customerEmail,
-        eventType: customOrder.eventType,
-        cakeSize: customOrder.cakeSize,
-        flavor: customOrder.flavor,
-        deliveryDate: customOrder.deliveryDate,
-        status: customOrder.status,
-        createdAt: customOrder.createdAt
+        id: result.customOrder._id,
+        orderId: result.customOrder.orderId,
+        customerName: result.customOrder.customerName,
+        customerEmail: result.customOrder.customerEmail,
+        eventType: result.customOrder.eventType,
+        cakeSize: result.customOrder.cakeSize,
+        flavor: result.customOrder.flavor,
+        deliveryDate: result.customOrder.deliveryDate,
+        status: result.customOrder.status,
+        createdAt: result.customOrder.createdAt
       }
     });
   } catch (error) {
     console.error('Custom order submission error:', error);
     
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
-        success: false,
-        error: validationErrors.join(', ') 
-      });
-    }
-    
-    res.status(500).json({ 
+    // Business logic layer provides detailed error messages
+    res.status(400).json({ 
       success: false,
-      error: 'Failed to submit custom order. Please try again.' 
+      error: error.message
     });
   }
 });
@@ -1793,165 +1730,29 @@ app.get('/products/featured', checkDBConnection, async (req, res) => {
 
 // ORDER MANAGEMENT ENDPOINTS
 
-// POST - Create New Order
+// POST - Create New Order (Using Business Logic)
 app.post('/orders', checkDBConnection, async (req, res) => {
   try {
     console.log('=== ORDER CREATION REQUEST ===');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     
-    const {
-      customerInfo,
-      items,
-      deliveryDate,
-      deliveryTime,
-      specialInstructions,
-      paymentMethod = 'cash_on_delivery'
-    } = req.body;
-
-    // Basic validation
-    if (!customerInfo || !items || !Array.isArray(items) || items.length === 0) {
-      console.log('Validation failed: Missing customer info or items');
-      return res.status(400).json({
-        success: false,
-        error: 'Customer info and items are required'
-      });
-    }
-
-    // Validate customer info
-    const { name, email, phone, address } = customerInfo;
-    console.log('Customer info validation:', { name, email, phone, address });
+    // Use business logic layer for order creation
+    const result = await BusinessLogic.createOrder(req.body);
     
-    if (!name || !email || !phone || !address) {
-      console.log('Validation failed: Incomplete customer information');
-      return res.status(400).json({
-        success: false,
-        error: 'Complete customer information is required'
-      });
-    }
-
-    // Validate delivery date
-    if (!deliveryDate || !deliveryTime) {
-      return res.status(400).json({
-        success: false,
-        error: 'Delivery date and time are required'
-      });
-    }
-
-    const orderDate = new Date(deliveryDate);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    if (orderDate < tomorrow) {
-      return res.status(400).json({
-        success: false,
-        error: 'Delivery date must be at least 1 day from today'
-      });
-    }
-
-    // Validate and process items
-    let totalAmount = 0;
-    const processedItems = [];
-
-    for (const item of items) {
-      const { productId, quantity } = item;
-      
-      if (!productId || !quantity || quantity < 1) {
-        return res.status(400).json({
-          success: false,
-          error: 'Valid product ID and quantity are required for all items'
-        });
-      }
-
-      // Check if product exists and is available
-      const product = await Product.findById(productId);
-      if (!product || !product.isActive) {
-        return res.status(400).json({
-          success: false,
-          error: `Product ${productId} not found or unavailable`
-        });
-      }
-
-      // Check stock availability
-      if (product.stockQuantity < quantity) {
-        return res.status(400).json({
-          success: false,
-          error: `Insufficient stock for ${product.name}. Available: ${product.stockQuantity}, Requested: ${quantity}`
-        });
-      }
-
-      const subtotal = product.price * quantity;
-      totalAmount += subtotal;
-
-      processedItems.push({
-        product: productId,
-        name: product.name,
-        price: product.price,
-        quantity: parseInt(quantity),
-        subtotal
-      });
-    }
-
-    // Calculate delivery fee (same logic as frontend)
-    const deliveryFee = totalAmount >= 9000 ? 0 : 500;
-    const finalTotalAmount = totalAmount + deliveryFee;
-
-    console.log('Order calculation:', {
-      subtotal: totalAmount,
-      deliveryFee: deliveryFee,
-      finalTotal: finalTotalAmount
-    });
-
-    // Create the order
-    const order = new Order({
-      orderId: 'ORD' + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase(),
-      customerInfo: {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
-        address
-      },
-      items: processedItems,
-      totalAmount: finalTotalAmount,
-      deliveryDate: orderDate,
-      deliveryTime,
-      specialInstructions: specialInstructions ? specialInstructions.trim() : '',
-      paymentMethod
-    });
-
-    await order.save();
-
-    // Update product stock and sold count
-    for (const item of processedItems) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: {
-          stockQuantity: -item.quantity,
-          soldCount: item.quantity
-        }
-      });
-    }
-
-    // Populate the order before sending response
-    const populatedOrder = await Order.findById(order._id).populate('items.product', 'name images category');
-
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
-      data: populatedOrder
+      data: result.order,
+      totals: result.totals
     });
+    
   } catch (error) {
     console.error('Create order error:', error);
     
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        error: validationErrors.join(', ')
-      });
-    }
-
-    res.status(500).json({
+    // Business logic layer provides detailed error messages
+    res.status(400).json({
       success: false,
-      error: 'Failed to create order'
+      error: error.message
     });
   }
 });
