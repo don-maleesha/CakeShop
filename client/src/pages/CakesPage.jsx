@@ -127,6 +127,13 @@ const CakesPage = () => {
         const productsData = await productsResponse.json();
         const products = productsData.data?.products || productsData || [];
 
+        console.log('Fetched products with stock info:', products.slice(0, 2).map(p => ({
+          name: p.name,
+          stockQuantity: p.stockQuantity,
+          lowStockThreshold: p.lowStockThreshold,
+          isActive: p.isActive
+        })));
+
         // Group products by category
         const categorizedProducts = {};
         
@@ -161,6 +168,24 @@ const CakesPage = () => {
 
   const handleAddToCart = (product, selectedSize = null) => {
     try {
+      // Check stock availability before adding to cart
+      if (!product.isActive) {
+        alert('This product is currently unavailable.');
+        return;
+      }
+      
+      if (product.stockQuantity <= 0) {
+        alert(`Sorry, ${product.name} is currently out of stock.`);
+        return;
+      }
+      
+      if (product.stockQuantity <= product.lowStockThreshold) {
+        const confirmed = window.confirm(
+          `${product.name} is running low in stock (${product.stockQuantity} left). Would you like to add it to cart?`
+        );
+        if (!confirmed) return;
+      }
+      
       addToCart(product, 1, selectedSize);
       // Show a success message
       alert(`${product.name}${selectedSize ? ` (${selectedSize.name})` : ''} added to cart!`);
@@ -403,10 +428,32 @@ const CakesPage = () => {
                           <h3 className="text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
                           <p className="text-gray-600 mb-2">{product.description}</p>
                           {product.sizes && product.sizes.length > 0 && (
-                            <p className="text-sm text-gray-500 mb-4">
+                            <p className="text-sm text-gray-500 mb-2">
                               Available sizes: {product.sizes.map(size => size.name).join(', ')}
                             </p>
                           )}
+                          
+                          {/* Stock Status Display */}
+                          <div className="mb-3">
+                            {!product.isActive ? (
+                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                                Unavailable
+                              </span>
+                            ) : product.stockQuantity === 0 ? (
+                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                                Out of Stock
+                              </span>
+                            ) : product.stockQuantity <= product.lowStockThreshold ? (
+                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                                Low Stock ({product.stockQuantity} left)
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                In Stock ({product.stockQuantity} available)
+                              </span>
+                            )}
+                          </div>
+                          
                           <div className="flex items-center justify-between">
                             <span className="text-2xl font-bold text-red-500">
                               LKR {product.discountPrice || product.price}
@@ -418,7 +465,12 @@ const CakesPage = () => {
                             </span>
                             <button
                               onClick={() => handleProductAddToCart(product)}
-                              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center space-x-2"
+                              disabled={!product.isActive || product.stockQuantity === 0}
+                              className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                                !product.isActive || product.stockQuantity === 0
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  : 'bg-red-500 text-white hover:bg-red-600'
+                              }`}
                             >
                               <Plus className="w-4 h-4" />
                               <span>Add to Cart</span>

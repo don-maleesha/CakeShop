@@ -5,24 +5,124 @@ import { useCart } from '../contexts/CartContext';
 
 const HomePage = () => {
   const { addToCart } = useCart();
+  const [featuredCakes, setFeaturedCakes] = useState([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
 
-  const handleAddToCart = (cake) => {
-    // Create a mock product object for featured cakes
-    const product = {
-      _id: cake.name.toLowerCase().replace(/\s+/g, '-'),
-      name: cake.name,
-      description: cake.description,
-      price: parseFloat(cake.price.replace('LKR ', '').replace(',', '')),
-      images: [cake.image],
-      category: { name: 'Featured' },
-      type: 'regular',
-      stockQuantity: 10,
-      isActive: true
+  // Fetch featured products (most sold) from API
+  useEffect(() => {
+    const fetchFeaturedCakes = async () => {
+      try {
+        setLoadingFeatured(true);
+        
+        console.log('Fetching featured products from API...');
+        const response = await fetch('http://localhost:4000/products/featured?limit=3', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        });
+        
+        console.log('API Response status:', response.status);
+        console.log('API Response ok:', response.ok);
+        
+        if (!response.ok) {
+          throw new Error(`API responded with status ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('API Response data:', data);
+        
+        const products = data.data || [];
+        
+        console.log('Fetched featured products:', products);
+        
+        if (products.length === 0) {
+          console.warn('No featured products returned from API, using fallback data');
+          throw new Error('No products returned from API');
+        }
+        
+        setFeaturedCakes(products);
+      } catch (error) {
+        console.error('Error fetching featured cakes:', error);
+        console.error('Error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+        // Fallback to hardcoded data if API fails
+        setFeaturedCakes([
+          {
+            _id: 'fallback-1',
+            name: 'Chocolate Indulgence',
+            price: 7850,
+            images: ['https://images.pexels.com/photos/1126359/pexels-photo-1126359.jpeg'],
+            description: 'Rich chocolate layers with premium cocoa',
+            category: { name: 'Featured' },
+            type: 'regular',
+            stockQuantity: 8,
+            isActive: true,
+            soldCount: 45,
+            lowStockThreshold: 10
+          },
+          {
+            _id: 'fallback-2',
+            name: 'Vanilla Bean Elegant',
+            price: 6750,
+            images: ['https://images.pexels.com/photos/1721932/pexels-photo-1721932.jpeg'],
+            description: 'Classic vanilla with elegant decoration',
+            category: { name: 'Featured' },
+            type: 'regular',
+            stockQuantity: 15,
+            isActive: true,
+            soldCount: 38,
+            lowStockThreshold: 10
+          },
+          {
+            _id: 'fallback-3',
+            name: 'Berry Fresh Delight',
+            price: 7300,
+            images: ['https://images.pexels.com/photos/1055272/pexels-photo-1055272.jpeg'],
+            description: 'Light sponge with fresh seasonal berries',
+            category: { name: 'Featured' },
+            type: 'regular',
+            stockQuantity: 3,
+            isActive: true,
+            soldCount: 29,
+            lowStockThreshold: 5
+          }
+        ]);
+      } finally {
+        setLoadingFeatured(false);
+      }
     };
-    
+
+    fetchFeaturedCakes();
+  }, []);
+
+  const handleAddToCart = (product, selectedSize = null) => {
     try {
-      addToCart(product, 1);
-      alert(`${cake.name} added to cart!`);
+      // Check stock availability
+      if (!product.isActive) {
+        alert('This product is currently unavailable.');
+        return;
+      }
+      
+      if (product.stockQuantity <= 0) {
+        alert(`Sorry, ${product.name} is currently out of stock.`);
+        return;
+      }
+      
+      if (product.stockQuantity <= (product.lowStockThreshold || 5)) {
+        const confirmed = window.confirm(
+          `${product.name} is running low in stock (${product.stockQuantity} left). Would you like to add it to cart?`
+        );
+        if (!confirmed) return;
+      }
+      
+      addToCart(product, 1, selectedSize);
+      alert(`${product.name}${selectedSize ? ` (${selectedSize.name})` : ''} added to cart!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
       alert('Failed to add item to cart. Please try again.');
@@ -127,47 +227,79 @@ const HomePage = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Cakes</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Most Popular Cakes</h2>
             <p className="text-gray-600">
-              Discover our most popular and delicious cake creations.
+              Discover our most loved and best-selling cake creations, ordered by popularity.
             </p>
           </div>
           
+          {loadingFeatured ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+              <span className="ml-2 text-gray-600">Loading featured cakes...</span>
+            </div>
+          ) : null}
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                name: 'Chocolate Indulgence',
-                price: 'LKR 7,850.00',
-                image: 'https://images.pexels.com/photos/1126359/pexels-photo-1126359.jpeg',
-                description: 'Rich chocolate layers with premium cocoa'
-              },
-              {
-                name: 'Vanilla Bean Elegant',
-                price: 'LKR 6,750.00',
-                image: 'https://images.pexels.com/photos/1721932/pexels-photo-1721932.jpeg',
-                description: 'Classic vanilla with elegant decoration'
-              },
-              {
-                name: 'Berry Fresh Delight',
-                price: 'LKR 7,300.00',
-                image: 'https://images.pexels.com/photos/1055272/pexels-photo-1055272.jpeg',
-                description: 'Light sponge with fresh seasonal berries'
-              }
-            ].map((cake, index) => (
-              <div key={index} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                <img
-                  src={cake.image}
-                  alt={cake.name}
-                  className="w-full h-48 object-cover"
-                />
+            {featuredCakes.map((product) => (
+              <div key={product._id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                <div className="relative">
+                  <img
+                    src={product.images?.[0] || 'https://images.pexels.com/photos/1126359/pexels-photo-1126359.jpeg'}
+                    alt={product.name}
+                    className="w-full h-48 object-cover"
+                    onError={(e) => {
+                      e.target.src = 'https://images.pexels.com/photos/1126359/pexels-photo-1126359.jpeg';
+                    }}
+                  />
+                  {product.stockQuantity <= (product.lowStockThreshold || 5) && product.stockQuantity > 0 && (
+                    <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                      Only {product.stockQuantity} left!
+                    </div>
+                  )}
+                </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{cake.name}</h3>
-                  <p className="text-gray-600 mb-4">{cake.description}</p>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
+                  <p className="text-gray-600 mb-4">{product.description}</p>
+                  
+                  {/* Stock Status */}
+                  <div className="mb-3">
+                    {!product.isActive ? (
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                        Unavailable
+                      </span>
+                    ) : product.stockQuantity === 0 ? (
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                        Out of Stock
+                      </span>
+                    ) : product.stockQuantity <= (product.lowStockThreshold || 5) ? (
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                        Low Stock
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                        In Stock
+                      </span>
+                    )}
+                  </div>
+                  
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-red-500">{cake.price}</span>
+                    <span className="text-2xl font-bold text-red-500">
+                      LKR {(product.discountPrice || product.price).toLocaleString()}
+                      {product.discountPrice && (
+                        <span className="text-sm text-gray-500 line-through ml-2">
+                          LKR {product.price.toLocaleString()}
+                        </span>
+                      )}
+                    </span>
                     <button 
-                      onClick={() => handleAddToCart(cake)}
-                      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center space-x-2"
+                      onClick={() => handleAddToCart(product)}
+                      disabled={!product.isActive || product.stockQuantity === 0}
+                      className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                        !product.isActive || product.stockQuantity === 0
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-red-500 text-white hover:bg-red-600'
+                      }`}
                     >
                       <Plus className="w-4 h-4" />
                       <span>Add to Cart</span>

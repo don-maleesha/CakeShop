@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import Header from "./components/Header";
 import Footer from './components/Footer.jsx';
 import CartSidebar from './components/CartSidebar.jsx';
+import RegistrationIncentiveModal from './components/RegistrationIncentiveModal.jsx';
 
 export default function Layout() {
     return (
@@ -13,6 +14,7 @@ export default function Layout() {
             </main>
             <Footer />
             <CartSidebar />
+            <RegistrationIncentiveModal />
         </div>
     );
 }

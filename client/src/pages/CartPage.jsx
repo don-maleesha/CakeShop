@@ -130,10 +130,34 @@ const CartPage = () => {
                           <button
                             onClick={() => updateQuantity(item.key, item.quantity + 1)}
                             className="p-2 hover:bg-gray-100 text-gray-600"
+                            disabled={item.product.stockQuantity && item.quantity >= item.product.stockQuantity}
                           >
                             <Plus className="w-4 h-4" />
                           </button>
                         </div>
+                      </div>
+                      
+                      {/* Stock Status Warning */}
+                      <div className="text-right">
+                        {item.product.stockQuantity !== undefined && (
+                          <div className="text-xs">
+                            {item.product.stockQuantity === 0 ? (
+                              <span className="text-red-600 font-medium">Out of Stock</span>
+                            ) : item.quantity > item.product.stockQuantity ? (
+                              <span className="text-red-600 font-medium">
+                                Only {item.product.stockQuantity} available
+                              </span>
+                            ) : item.product.stockQuantity <= item.product.lowStockThreshold ? (
+                              <span className="text-yellow-600 font-medium">
+                                Low Stock ({item.product.stockQuantity} left)
+                              </span>
+                            ) : (
+                              <span className="text-green-600">
+                                {item.product.stockQuantity} in stock
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

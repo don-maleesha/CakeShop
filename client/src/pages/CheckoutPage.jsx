@@ -105,6 +105,38 @@ const CheckoutPage = () => {
     console.log('Cart items:', items);
 
     try {
+      // Pre-validate stock availability for all items before submitting order
+      console.log('Validating stock availability...');
+      
+      // Fetch fresh product data to ensure stock quantities are current
+      const freshProductData = [];
+      for (const item of items) {
+        try {
+          const response = await axios.get(`http://localhost:4000/products/${item.product._id}`);
+          if (response.data.success) {
+            freshProductData.push(response.data.data);
+          } else {
+            throw new Error(`Cannot fetch current data for ${item.product.name}`);
+          }
+        } catch (fetchError) {
+          console.error('Error fetching fresh product data:', fetchError);
+          throw new Error(`Cannot verify current stock for ${item.product.name}. Please refresh the page and try again.`);
+        }
+      }
+      
+      // Validate stock with fresh data
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const freshProduct = freshProductData[i];
+        
+        if (!freshProduct.isActive) {
+          throw new Error(`${freshProduct.name} is no longer available`);
+        }
+        if (freshProduct.stockQuantity < item.quantity) {
+          throw new Error(`Insufficient stock for ${freshProduct.name}. Available: ${freshProduct.stockQuantity}, Requested: ${item.quantity}`);
+        }
+      }
+
       // Prepare order items in the format expected by the API
       const orderItems = items.map(item => ({
         productId: item.product._id,
@@ -286,6 +318,48 @@ const CheckoutPage = () => {
                     />
                   </div>
                 </div>
+                
+                {/* Member Benefits for Non-Registered Users */}
+                {!user && (
+                  <div className="mt-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-red-800 mb-2">🎉 Create an account and save!</h3>
+                        <div className="space-y-1 text-xs text-red-700">
+                          <p>✓ <strong>5% discount</strong> on this order (Save LKR {(totalAmount * 0.05).toFixed(2)})</p>
+                          <p>✓ <strong>Faster checkout</strong> - save your details for next time</p>
+                          <p>✓ <strong>Order history</strong> - track all your orders</p>
+                          <p>✓ <strong>Exclusive offers</strong> - member-only deals and early access</p>
+                        </div>
+                        <div className="flex space-x-2 mt-3">
+                          <button
+                            type="button"
+                            onClick={() => navigate('/register', { 
+                              state: { returnTo: '/checkout', cartItems: items } 
+                            })}
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
+                          >
+                            Create Account
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate('/login', { 
+                              state: { returnTo: '/checkout' } 
+                            })}
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors"
+                          >
+                            Login
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Delivery Address */}
@@ -395,11 +469,10 @@ const CheckoutPage = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     >
                       <option value="">Select time</option>
-                      <option value="9:00 AM - 11:00 AM">9:00 AM - 11:00 AM</option>
-                      <option value="11:00 AM - 1:00 PM">11:00 AM - 1:00 PM</option>
-                      <option value="1:00 PM - 3:00 PM">1:00 PM - 3:00 PM</option>
-                      <option value="3:00 PM - 5:00 PM">3:00 PM - 5:00 PM</option>
-                      <option value="5:00 PM - 7:00 PM">5:00 PM - 7:00 PM</option>
+                      <option value="9:00 AM - 12:00 PM">9:00 AM - 12:00 PM</option>
+                      <option value="12:00 PM - 3:00 PM">12:00 PM - 3:00 PM</option>
+                      <option value="3:00 PM - 6:00 PM">3:00 PM - 6:00 PM</option>
+                      <option value="6:00 PM - 9:00 PM">6:00 PM - 9:00 PM</option>
                     </select>
                   </div>
                 </div>
