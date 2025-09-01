@@ -27,6 +27,7 @@ export default function Header() {
   const handleLogout = async () => {
     await logout();
     setShowDropdown(false);
+    // Cart will automatically switch to guest mode in CartContext
     navigate('/');
   };
 
