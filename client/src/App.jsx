@@ -28,6 +28,7 @@ import Category_management from './admin/Category_management.jsx';
 import ProductManagement from './admin/ProductManagement.jsx';
 import ContactManagement from './admin/ContactManagement.jsx';
 import CustomOrderManagement from './admin/CustomOrderManagement.jsx';
+import OrderManagement from './admin/OrderManagement.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
 import Dashboard from './admin/Dashboard.jsx';
 
@@ -49,6 +50,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="products" element={<ProductManagement />} />
+              <Route path="orders" element={<OrderManagement />} />
               <Route path="categories" element={<Category_management />} />
               <Route path="custom-orders" element={<CustomOrderManagement />} />
               <Route path="users" element={<Users />} />
