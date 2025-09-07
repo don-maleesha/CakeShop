@@ -51,16 +51,148 @@ class BusinessRules {
       error: 'Insufficient stock for requested quantity'
     });
 
-    this.addRule('order.minimumAmount', {
-      description: 'Orders below minimum amount incur delivery charges',
+    this.addRule('order.deliveryFee', {
+      description: 'Calculate delivery fee based on order amount and delivery zone',
       config: {
-        minimumAmount: 9000, // LKR
-        deliveryFee: 500     // LKR
+        defaultThreshold: 9000,  // LKR
+        defaultFee: 500,         // LKR
+        zones: {
+          'colombo': { 
+            fee: 300, 
+            freeThreshold: 8000, 
+            name: 'Colombo District',
+            cities: ['colombo', 'mount lavinia', 'dehiwala', 'moratuwa', 'kotte', 'maharagama']
+          },
+          'gampaha': { 
+            fee: 500, 
+            freeThreshold: 9000, 
+            name: 'Gampaha District',
+            cities: ['gampaha', 'negombo', 'kelaniya', 'kadawatha', 'ja-ela', 'wattala']
+          },
+          'kalutara': { 
+            fee: 600, 
+            freeThreshold: 10000, 
+            name: 'Kalutara District',
+            cities: ['kalutara', 'panadura', 'horana', 'beruwala', 'aluthgama']
+          },
+          'kandy': { 
+            fee: 800, 
+            freeThreshold: 12000, 
+            name: 'Kandy District',
+            cities: ['kandy', 'peradeniya', 'gampola', 'nawalapitiya']
+          },
+          'other': { 
+            fee: 1000, 
+            freeThreshold: 15000, 
+            name: 'Other Areas',
+            cities: []
+          }
+        },
+        expressDelivery: {
+          multiplier: 1.5,
+          minimumFee: 800,
+          description: 'Same-day delivery (additional charges apply)'
+        },
+        timeSlots: {
+          'morning': { multiplier: 1.0, name: '8:00 AM - 12:00 PM' },
+          'afternoon': { multiplier: 1.0, name: '12:00 PM - 6:00 PM' },
+          'evening': { multiplier: 1.0, name: '6:00 PM - 9:00 PM' },
+          'express': { multiplier: 1.5, name: 'Express (within 4 hours)' }
+        }
       },
-      calculate: (subtotal) => {
-        const rule = this.getRule('order.minimumAmount');
-        const { minimumAmount, deliveryFee } = rule.config;
-        return subtotal >= minimumAmount ? 0 : deliveryFee;
+      calculate: (subtotal, options = {}) => {
+        const { city, isExpress = false, timeSlot = 'afternoon', customerTier = 'regular' } = options;
+        const rule = this.getRule('order.deliveryFee');
+        const config = rule.config;
+        
+        // Get helpers for delivery zone calculation
+        const helpersRule = this.getRule('order.deliveryFeeHelpers');
+        
+        // Determine delivery zone
+        const zone = helpersRule.getDeliveryZone(city, config.zones);
+        const zoneConfig = config.zones[zone];
+        
+        // Check if eligible for free delivery
+        if (subtotal >= zoneConfig.freeThreshold) {
+          // Premium customers get free delivery even with express/time slot charges
+          if (customerTier === 'premium') {
+            return {
+              fee: 0,
+              zone: zone,
+              zoneName: zoneConfig.name,
+              isFree: true,
+              reason: 'Premium customer - Free delivery'
+            };
+          }
+          
+          // Regular customers - only time slot charges apply for free delivery eligible orders
+          const timeMultiplier = config.timeSlots[timeSlot]?.multiplier || 1.0;
+          const additionalFee = timeMultiplier > 1.0 ? (zoneConfig.fee * (timeMultiplier - 1.0)) : 0;
+          
+          return {
+            fee: additionalFee,
+            zone: zone,
+            zoneName: zoneConfig.name,
+            isFree: additionalFee === 0,
+            reason: additionalFee === 0 ? 'Free delivery (above threshold)' : 'Free delivery + time slot fee'
+          };
+        }
+        
+        // Calculate base delivery fee
+        let deliveryFee = zoneConfig.fee;
+        
+        // Apply express delivery multiplier
+        if (isExpress) {
+          deliveryFee = Math.max(deliveryFee * config.expressDelivery.multiplier, config.expressDelivery.minimumFee);
+        }
+        
+        // Apply time slot multiplier
+        const timeMultiplier = config.timeSlots[timeSlot]?.multiplier || 1.0;
+        deliveryFee *= timeMultiplier;
+        
+        // Apply customer tier discounts
+        if (customerTier === 'premium') {
+          deliveryFee *= 0.5; // 50% discount for premium customers
+        } else if (customerTier === 'gold') {
+          deliveryFee *= 0.8; // 20% discount for gold customers
+        }
+        
+        return {
+          fee: Math.round(deliveryFee),
+          zone: zone,
+          zoneName: zoneConfig.name,
+          isFree: false,
+          reason: helpersRule.buildDeliveryReason(isExpress, timeSlot, customerTier)
+        };
+      }
+    });
+
+    // Add helper methods for delivery fee calculation
+    this.addRule('order.deliveryFeeHelpers', {
+      description: 'Helper methods for delivery fee calculation',
+      getDeliveryZone: (city, zones) => {
+        if (!city) return 'other';
+        
+        const cityLower = city.toLowerCase().trim();
+        
+        for (const [zoneKey, zoneConfig] of Object.entries(zones)) {
+          if (zoneKey === 'other') continue;
+          if (zoneConfig.cities.some(zoneCity => cityLower.includes(zoneCity))) {
+            return zoneKey;
+          }
+        }
+        
+        return 'other';
+      },
+      buildDeliveryReason: (isExpress, timeSlot, customerTier) => {
+        const reasons = [];
+        if (isExpress) reasons.push('Express delivery');
+        if (timeSlot === 'evening') reasons.push('Evening delivery');
+        if (timeSlot === 'express') reasons.push('Express time slot');
+        if (customerTier === 'premium') reasons.push('Premium discount applied');
+        if (customerTier === 'gold') reasons.push('Gold member discount');
+        
+        return reasons.length > 0 ? reasons.join(', ') : 'Standard delivery';
       }
     });
 
@@ -307,15 +439,60 @@ class BusinessRules {
     }
   }
 
-  calculateOrderTotals(items, subtotal) {
-    const deliveryFee = this.calculateRule('order.minimumAmount', subtotal);
+  calculateOrderTotals(items, subtotal, deliveryOptions = {}) {
+    const deliveryResult = this.calculateRule('order.deliveryFee', subtotal, deliveryOptions);
+    const deliveryFee = typeof deliveryResult === 'object' ? deliveryResult.fee : deliveryResult;
     
     return {
       subtotal,
       deliveryFee,
       total: subtotal + deliveryFee,
-      freeDelivery: deliveryFee === 0
+      freeDelivery: deliveryFee === 0,
+      deliveryInfo: typeof deliveryResult === 'object' ? deliveryResult : null
     };
+  }
+
+  // New method to get delivery zones and options
+  getDeliveryOptions() {
+    const rule = this.getRule('order.deliveryFee');
+    return {
+      zones: rule.config.zones,
+      timeSlots: rule.config.timeSlots,
+      expressDelivery: rule.config.expressDelivery
+    };
+  }
+
+  // New method to calculate delivery fee with detailed breakdown
+  calculateDeliveryFee(subtotal, city, options = {}) {
+    const deliveryRule = this.getRule('order.deliveryFee');
+    const helpersRule = this.getRule('order.deliveryFeeHelpers');
+    
+    const zone = helpersRule.getDeliveryZone(city, deliveryRule.config.zones);
+    const result = deliveryRule.calculate(subtotal, { city, ...options });
+    
+    return {
+      ...result,
+      breakdown: {
+        baseZone: zone,
+        baseFee: deliveryRule.config.zones[zone].fee,
+        threshold: deliveryRule.config.zones[zone].freeThreshold,
+        appliedDiscounts: this.getAppliedDiscounts(subtotal, options),
+        timeSlotInfo: deliveryRule.config.timeSlots[options.timeSlot || 'afternoon']
+      }
+    };
+  }
+
+  getAppliedDiscounts(subtotal, options) {
+    const discounts = [];
+    const { customerTier, isExpress, timeSlot } = options;
+    
+    if (customerTier === 'premium') {
+      discounts.push({ type: 'premium', description: '50% off delivery', value: 0.5 });
+    } else if (customerTier === 'gold') {
+      discounts.push({ type: 'gold', description: '20% off delivery', value: 0.2 });
+    }
+    
+    return discounts;
   }
 
   calculateAdvancePayment(customOrder) {

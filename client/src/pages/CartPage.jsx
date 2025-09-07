@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Minus, Trash2, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useDelivery } from '../contexts/DeliveryContext';
+import DeliveryProgressIndicator from '../components/DeliveryProgressIndicator';
 
 const CartPage = () => {
   const { 
@@ -12,6 +14,18 @@ const CartPage = () => {
     removeFromCart,
     clearCart 
   } = useCart();
+
+  const { 
+    deliveryFee, 
+    deliveryInfo, 
+    freeDeliveryProgress, 
+    updateDeliveryCalculation 
+  } = useDelivery();
+
+  // Update delivery calculation when cart changes
+  useEffect(() => {
+    updateDeliveryCalculation(cartTotal, 'colombo'); // Default to Colombo for cart page
+  }, [cartTotal, updateDeliveryCalculation]);
 
   if (items.length === 0) {
     return (
@@ -177,7 +191,18 @@ const CartPage = () => {
           </div>
 
           {/* Order Summary */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
+            {/* Delivery Progress */}
+            <DeliveryProgressIndicator
+              progress={freeDeliveryProgress.progress}
+              isEligible={freeDeliveryProgress.isEligible}
+              remaining={freeDeliveryProgress.remaining}
+              threshold={freeDeliveryProgress.threshold}
+              zoneName={deliveryInfo.zoneName}
+              deliveryFee={deliveryFee}
+              savings={deliveryInfo.savings}
+            />
+
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
               
@@ -190,21 +215,15 @@ const CartPage = () => {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Delivery Fee</span>
                   <span className="text-gray-900">
-                    {cartTotal >= 9000 ? 'Free' : 'LKR 500.00'}
+                    {deliveryFee === 0 ? 'Free' : `LKR ${deliveryFee.toFixed(2)}`}
                   </span>
                 </div>
-                
-                {cartTotal < 9000 && (
-                  <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded">
-                    Add LKR {(9000 - cartTotal).toFixed(2)} more for free delivery!
-                  </div>
-                )}
                 
                 <div className="border-t pt-3">
                   <div className="flex justify-between">
                     <span className="text-lg font-semibold text-gray-900">Total</span>
                     <span className="text-xl font-bold text-red-600">
-                      LKR {(cartTotal + (cartTotal >= 9000 ? 0 : 500)).toFixed(2)}
+                      LKR {(cartTotal + deliveryFee).toFixed(2)}
                     </span>
                   </div>
                 </div>

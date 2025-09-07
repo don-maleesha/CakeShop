@@ -6,6 +6,7 @@ import IndexPage from './pages/IndexPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import { UserContextProvider } from './pages/UserContext.jsx';
 import { CartProvider } from './contexts/CartContext.jsx';
+import { DeliveryProvider } from './contexts/DeliveryContext.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import CakesPage from './pages/CakesPage.jsx';
@@ -37,6 +38,7 @@ function App() {
     <>
       <UserContextProvider>
         <CartProvider>
+          <DeliveryProvider>
           <Routes>
             {/* Admin Routes - Protected */}
             <Route
@@ -101,6 +103,7 @@ function App() {
               <Route path="contact" element={<Contact />} />
             </Route>
           </Routes>
+          </DeliveryProvider>
         </CartProvider>
       </UserContextProvider>
     </>

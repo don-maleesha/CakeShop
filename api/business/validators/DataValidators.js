@@ -235,15 +235,27 @@ class DataValidators {
           }
         }
       },
-      deliveryTime: {
-        required: true,
+      timeSlot: {
+        required: false,
         type: 'string',
-        enum: ['9:00 AM - 12:00 PM', '12:00 PM - 3:00 PM', '3:00 PM - 6:00 PM', '6:00 PM - 9:00 PM']
+        enum: ['morning', 'afternoon', 'evening', 'express'],
+        default: 'afternoon'
       },
       specialInstructions: {
         required: false,
         type: 'string',
         maxLength: 500
+      },
+      isExpress: {
+        required: false,
+        type: 'boolean',
+        default: false
+      },
+      customerTier: {
+        required: false,
+        type: 'string',
+        enum: ['regular', 'gold', 'premium'],
+        default: 'regular'
       },
       paymentMethod: {
         required: false,
@@ -495,21 +507,30 @@ class DataValidators {
       errors.push('Delivery date cannot be in the past');
     }
     
-    // Check if total amount matches items
-    if (orderData.items && orderData.totalAmount) {
-      let calculatedTotal = 0;
-      for (const item of orderData.items) {
-        calculatedTotal += (item.price || 0) * (item.quantity || 0);
-      }
-      
-      // Add delivery fee calculation
-      const deliveryFee = businessRules.calculateRule('order.minimumAmount', calculatedTotal);
-      calculatedTotal += deliveryFee;
-      
+    // Enhanced total validation with detailed logging
+    if (orderData.pricing && orderData.totalAmount) {
+      const calculatedTotal = orderData.pricing.subtotal + orderData.pricing.deliveryFee;
       const difference = Math.abs(calculatedTotal - orderData.totalAmount);
+      
+      // Debug logging
+      console.log('=== ORDER CONSISTENCY VALIDATION ===');
+      console.log('Pricing object:', orderData.pricing);
+      console.log('Main totalAmount:', orderData.totalAmount);
+      console.log('Calculated (subtotal + deliveryFee):', calculatedTotal);
+      console.log('Individual components:');
+      console.log('  - Subtotal:', orderData.pricing.subtotal);
+      console.log('  - DeliveryFee:', orderData.pricing.deliveryFee);
+      console.log('  - PricingTotal:', orderData.pricing.totalAmount);
+      console.log('Difference between calculated and main total:', difference);
+      console.log('Difference between pricing.totalAmount and main total:', Math.abs(orderData.pricing.totalAmount - orderData.totalAmount));
+      
       if (difference > 0.01) { // Allow for small rounding differences
-        errors.push('Order total amount does not match calculated total');
+        errors.push(`Order total amount does not match calculated total. Expected: ${calculatedTotal}, Got: ${orderData.totalAmount}, Difference: ${difference}`);
       }
+    } else if (!orderData.pricing) {
+      console.log('WARNING: No pricing object found in order data');
+    } else if (!orderData.totalAmount) {
+      console.log('WARNING: No totalAmount found in order data');
     }
     
     return errors;

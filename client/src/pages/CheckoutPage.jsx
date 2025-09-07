@@ -1,13 +1,24 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, CreditCard, MapPin, User, Mail, Phone, ShoppingBag } from 'lucide-react';
+import { Calendar, Clock, CreditCard, MapPin, User, Mail, Phone, ShoppingBag, Truck } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useDelivery } from '../contexts/DeliveryContext';
 import UserContext from '../pages/UserContext';
 import PayHereForm from '../components/PayHereForm';
+import DeliveryProgressIndicator from '../components/DeliveryProgressIndicator';
+import DeliveryZoneSelector from '../components/DeliveryZoneSelector';
 import axios from 'axios';
 
 const CheckoutPage = () => {
   const { items, cartTotal, clearCart } = useCart();
+  const { 
+    deliveryFee, 
+    deliveryInfo, 
+    freeDeliveryProgress, 
+    deliveryOptions,
+    updateDeliveryCalculation
+    // isLoading: deliveryLoading  // Commented out until needed
+  } = useDelivery();
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
   
@@ -26,13 +37,35 @@ const CheckoutPage = () => {
       }
     },
     deliveryDate: '',
-    deliveryTime: '',
     specialInstructions: '',
-    paymentMethod: 'cash_on_delivery'
+    paymentMethod: 'cash_on_delivery',
+    // New delivery options
+    isExpress: false,
+    timeSlot: 'afternoon',
+    customerTier: user?.tier || 'regular'
   });
 
-  const deliveryFee = cartTotal >= 9000 ? 0 : 500;
   const totalAmount = cartTotal + deliveryFee;
+
+  // Update delivery calculation when cart or address changes
+  useEffect(() => {
+    updateDeliveryCalculation(
+      cartTotal, 
+      orderData.customerInfo.address.city,
+      {
+        isExpress: orderData.isExpress,
+        timeSlot: orderData.timeSlot,
+        customerTier: orderData.customerTier
+      }
+    );
+  }, [
+    cartTotal, 
+    orderData.customerInfo.address.city, 
+    orderData.isExpress, 
+    orderData.timeSlot, 
+    orderData.customerTier,
+    updateDeliveryCalculation
+  ]);
 
   // PayHere form handlers
   const handlePaymentSuccess = (orderId) => {
@@ -95,6 +128,19 @@ const CheckoutPage = () => {
     }
   };
 
+  const getTimeSlotPrice = (slotId) => {
+    const slot = deliveryOptions.timeSlots?.find(s => s.id === slotId);
+    if (!slot || !deliveryInfo.zone) return '';
+    
+    if (slot.multiplier === 1.0) return '';
+    
+    const currentZone = {
+      fee: deliveryFee / (slot.multiplier || 1) // Calculate base fee
+    };
+    const additionalFee = Math.round(currentZone.fee * (slot.multiplier - 1.0));
+    return additionalFee > 0 ? `(+LKR ${additionalFee})` : '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -147,9 +193,12 @@ const CheckoutPage = () => {
         customerInfo: orderData.customerInfo,
         items: orderItems,
         deliveryDate: orderData.deliveryDate,
-        deliveryTime: orderData.deliveryTime,
         specialInstructions: orderData.specialInstructions,
-        paymentMethod: orderData.paymentMethod
+        paymentMethod: orderData.paymentMethod,
+        // Enhanced delivery options
+        isExpress: orderData.isExpress,
+        timeSlot: orderData.timeSlot,
+        customerTier: orderData.customerTier
       };
 
       // Debug: Log the payload being sent
@@ -262,48 +311,53 @@ const CheckoutPage = () => {
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Customer Information & Delivery */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Customer Information */}
+            <div className="lg:col-span-2 space-y-4">
+              
+              {/* Personal Information */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                   <User className="w-5 h-5 mr-2" />
-                  Customer Information
+                  Personal Information
                 </h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="customerInfo.name"
-                      value={orderData.customerInfo.name}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      placeholder="Enter your full name"
-                    />
+                {/* Name and Email - closely related contact info */}
+                <div className="space-y-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="customerInfo.name"
+                        value={orderData.customerInfo.name}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <Mail className="w-4 h-4 inline mr-1" />
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        name="customerInfo.email"
+                        value={orderData.customerInfo.email}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                        placeholder="Enter your email"
+                      />
+                    </div>
                   </div>
                   
+                  {/* Phone number - related to contact info */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Mail className="w-4 h-4 inline mr-1" />
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      name="customerInfo.email"
-                      value={orderData.customerInfo.email}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      placeholder="Enter your email"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       <Phone className="w-4 h-4 inline mr-1" />
                       Phone Number *
                     </label>
@@ -313,15 +367,15 @@ const CheckoutPage = () => {
                       value={orderData.customerInfo.phone}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                       placeholder="Enter your phone number"
                     />
                   </div>
                 </div>
-                
+
                 {/* Member Benefits for Non-Registered Users */}
                 {!user && (
-                  <div className="mt-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200">
+                  <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200">
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0">
                         <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -364,14 +418,15 @@ const CheckoutPage = () => {
 
               {/* Delivery Address */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                   <MapPin className="w-5 h-5 mr-2" />
                   Delivery Address
                 </h2>
                 
+                {/* Street Address first - main address field */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Street Address *
                     </label>
                     <input
@@ -380,14 +435,15 @@ const CheckoutPage = () => {
                       value={orderData.customerInfo.address.street}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                       placeholder="Enter street address"
                     />
                   </div>
                   
+                  {/* City and Postal Code - location details grouped together */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         City *
                       </label>
                       <input
@@ -396,13 +452,13 @@ const CheckoutPage = () => {
                         value={orderData.customerInfo.address.city}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                         placeholder="Enter city"
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         Postal Code *
                       </label>
                       <input
@@ -411,38 +467,75 @@ const CheckoutPage = () => {
                         value={orderData.customerInfo.address.postalCode}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                         placeholder="Enter postal code"
                       />
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Country
-                      </label>
-                      <input
-                        type="text"
-                        name="address.country"
-                        value={orderData.customerInfo.address.country}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
-                        readOnly
-                      />
-                    </div>
+                  </div>
+
+                  {/* Country - less important, at the end */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      name="address.country"
+                      value={orderData.customerInfo.address.country}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 transition-all"
+                      readOnly
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Delivery Details */}
+              {/* Delivery Options */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  Delivery Details
+                <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                  <Truck className="w-5 h-5 mr-2" />
+                  Delivery Options
                 </h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Zone selector and delivery options grouped together */}
+                <div className="space-y-4">
+                  <DeliveryZoneSelector
+                    selectedCity={orderData.customerInfo.address.city}
+                    onCityChange={(city) => handleInputChange({ target: { name: 'address.city', value: city } })}
+                    selectedTimeSlot={orderData.timeSlot}
+                    onTimeSlotChange={(timeSlot) => setOrderData(prev => ({ ...prev, timeSlot }))}
+                    isExpressDelivery={orderData.isExpress}
+                    onExpressChange={(isExpress) => setOrderData(prev => ({ ...prev, isExpress }))}
+                    showTimeSlots={false}
+                    showExpressOptions={true}
+                  />
+                </div>
+              </div>
+
+              {/* Free Delivery Progress */}
+              {cartTotal > 0 && (
+                <DeliveryProgressIndicator
+                  progress={freeDeliveryProgress.progress}
+                  isEligible={freeDeliveryProgress.isEligible}
+                  remaining={freeDeliveryProgress.remaining}
+                  threshold={freeDeliveryProgress.threshold}
+                  zoneName={deliveryInfo.zoneName}
+                  deliveryFee={deliveryFee}
+                  savings={deliveryInfo.savings}
+                />
+              )}
+
+              {/* Delivery Schedule & Instructions */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                  <Calendar className="w-5 h-5 mr-2" />
+                  Delivery Schedule
+                </h2>
+                
+                <div className="space-y-4">
+                  {/* Delivery date */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Delivery Date *
                     </label>
                     <input
@@ -452,55 +545,73 @@ const CheckoutPage = () => {
                       onChange={handleInputChange}
                       required
                       min={minDate}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                     />
                   </div>
-                  
+
+                  {/* Preferred Delivery Time */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <Clock className="w-4 h-4 inline mr-1" />
-                      Delivery Time *
+                      Preferred Delivery Time *
                     </label>
-                    <select
-                      name="deliveryTime"
-                      value={orderData.deliveryTime}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    >
-                      <option value="">Select time</option>
-                      <option value="9:00 AM - 12:00 PM">9:00 AM - 12:00 PM</option>
-                      <option value="12:00 PM - 3:00 PM">12:00 PM - 3:00 PM</option>
-                      <option value="3:00 PM - 6:00 PM">3:00 PM - 6:00 PM</option>
-                      <option value="6:00 PM - 9:00 PM">6:00 PM - 9:00 PM</option>
-                    </select>
+                    <div className="grid grid-cols-1 gap-2">
+                      {deliveryOptions.timeSlots && deliveryOptions.timeSlots
+                        .filter(slot => !slot.isExpressSlot) // Filter out express delivery slots
+                        .map((slot) => (
+                        <label
+                          key={slot.id}
+                          className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-all"
+                        >
+                          <input
+                            type="radio"
+                            name="timeSlot"
+                            value={slot.id}
+                            checked={orderData.timeSlot === slot.id}
+                            onChange={(e) => setOrderData(prev => ({ ...prev, timeSlot: e.target.value }))}
+                            className="text-red-600 focus:ring-red-500"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-gray-900">{slot.name}</span>
+                              {slot.multiplier > 1.0 && (
+                                <span className="text-sm text-orange-600 font-medium">
+                                  {getTimeSlotPrice(slot.id)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Special Instructions
-                  </label>
-                  <textarea
-                    name="specialInstructions"
-                    value={orderData.specialInstructions}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    placeholder="Any special delivery instructions or notes..."
-                  />
+                  
+                  {/* Special instructions - related to delivery */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Special Instructions
+                    </label>
+                    <textarea
+                      name="specialInstructions"
+                      value={orderData.specialInstructions}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none"
+                      placeholder="Any special delivery instructions or notes..."
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Payment Method */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                   <CreditCard className="w-5 h-5 mr-2" />
                   Payment Method
                 </h2>
                 
                 <div className="space-y-3">
-                  <label className="flex items-center">
+                  <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-all">
                     <input
                       type="radio"
                       name="paymentMethod"
@@ -509,10 +620,10 @@ const CheckoutPage = () => {
                       onChange={handleInputChange}
                       className="text-red-600 focus:ring-red-500"
                     />
-                    <span className="ml-3">Cash on Delivery</span>
+                    <span className="ml-3 font-medium">Cash on Delivery</span>
                   </label>
                   
-                  <label className="flex items-center">
+                  <label className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-all">
                     <input
                       type="radio"
                       name="paymentMethod"
@@ -521,7 +632,7 @@ const CheckoutPage = () => {
                       onChange={handleInputChange}
                       className="text-red-600 focus:ring-red-500"
                     />
-                    <span className="ml-3">Online Transfer (PayHere)</span>
+                    <span className="ml-3 font-medium">Online Transfer (PayHere)</span>
                   </label>
                 </div>
               </div>
