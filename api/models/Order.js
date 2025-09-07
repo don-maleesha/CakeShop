@@ -64,6 +64,70 @@ const orderSchema = new mongoose.Schema({
     }
   },
   items: [orderItemSchema],
+  pricing: {
+    subtotal: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    deliveryFee: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    tax: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    discount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    totalAmount: {
+      type: Number,
+      required: true,
+      min: 0
+    }
+  },
+  delivery: {
+    fee: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    zone: {
+      type: String,
+      enum: ['colombo', 'gampaha', 'kalutara', 'kandy', 'other'],
+      default: 'other'
+    },
+    zoneName: {
+      type: String,
+      default: 'Other Areas'
+    },
+    isFree: {
+      type: Boolean,
+      default: false
+    },
+    reason: {
+      type: String,
+      default: 'Standard delivery'
+    },
+    isExpress: {
+      type: Boolean,
+      default: false
+    },
+    timeSlot: {
+      type: String,
+      enum: ['morning', 'afternoon', 'evening', 'express'],
+      default: 'afternoon'
+    },
+    timeSlotName: {
+      type: String,
+      default: '12:00 PM - 6:00 PM'
+    }
+  },
   totalAmount: {
     type: Number,
     required: true,
@@ -97,7 +161,7 @@ const orderSchema = new mongoose.Schema({
   },
   deliveryTime: {
     type: String,
-    required: true
+    required: false  // Made optional since we now use delivery.timeSlot
   },
   specialInstructions: {
     type: String,

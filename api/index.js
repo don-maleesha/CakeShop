@@ -34,6 +34,10 @@ app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 // Payment routes
 app.use('/payment', paymentRoutes);
 
+// Delivery routes
+const deliveryRoutes = require('./routes/delivery');
+app.use('/delivery', deliveryRoutes);
+
 // Add request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);

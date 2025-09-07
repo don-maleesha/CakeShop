@@ -34,11 +34,63 @@ class OrderService {
       // 3. Validate and process items (includes stock validation with real product objects)
       const processedItems = await this.processOrderItems(orderData.items);
       
-      // 4. Calculate totals
+      // 4. Calculate totals with delivery options
       const subtotal = processedItems.reduce((sum, item) => sum + item.subtotal, 0);
-      const totals = businessRules.calculateOrderTotals(processedItems, subtotal);
+      
+      // Extract delivery options from order data
+      const deliveryOptions = {
+        city: orderData.customerInfo?.address?.city,
+        isExpress: orderData.isExpress || false,
+        timeSlot: orderData.timeSlot || 'afternoon',
+        customerTier: orderData.customerTier || 'regular'
+      };
+      
+      const totals = businessRules.calculateOrderTotals(processedItems, subtotal, deliveryOptions);
+      const deliveryInfo = businessRules.calculateDeliveryFee(subtotal, deliveryOptions.city, deliveryOptions);
 
-      // 5. Create order entity
+      // Debug: Check for delivery fee consistency
+      console.log('=== DELIVERY FEE CONSISTENCY CHECK ===');
+      console.log('Totals.deliveryFee:', totals.deliveryFee);
+      console.log('DeliveryInfo.fee:', deliveryInfo.fee);
+      console.log('Delivery fee match:', totals.deliveryFee === deliveryInfo.fee);
+      
+      // Use the deliveryFee from totals to ensure consistency
+      const finalDeliveryFee = totals.deliveryFee;
+      
+      // Get delivery options and resolve time slot name
+      const deliveryOptionsConfig = businessRules.getDeliveryOptions();
+      const timeSlotName = deliveryOptionsConfig.timeSlots[deliveryOptions.timeSlot]?.name || 'Standard Time';
+      
+      // Debug: Log time slot resolution
+      console.log('=== TIME SLOT RESOLUTION ===');
+      console.log('Selected timeSlot:', deliveryOptions.timeSlot);
+      console.log('Available timeSlots:', Object.keys(deliveryOptionsConfig.timeSlots));
+      console.log('Resolved timeSlotName:', timeSlotName);
+
+      // 5. Create order entity with enhanced delivery information
+      const orderData_final = {
+        customerInfo: orderData.customerInfo,
+        items: processedItems,
+        pricing: {
+          subtotal: totals.subtotal,
+          deliveryFee: totals.deliveryFee,
+          totalAmount: totals.total
+        },
+        delivery: {
+          fee: deliveryInfo.fee,
+          zone: deliveryInfo.zone,
+          zoneName: deliveryInfo.zoneName,
+          isFree: deliveryInfo.isFree,
+          reason: deliveryInfo.reason,
+          isExpress: deliveryOptions.isExpress,
+          timeSlot: deliveryOptions.timeSlot,
+          timeSlotName: businessRules.getDeliveryOptions().timeSlots[deliveryOptions.timeSlot]?.name || 'Standard'
+        },
+        totalAmount: totals.total,
+        deliveryDate: orderData.deliveryDate,
+        specialInstructions: orderData.specialInstructions,
+        paymentMethod: orderData.paymentMethod
+      };
       const order = new Order({
         orderId: 'ORD' + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase(),
         customerInfo: {
@@ -48,11 +100,37 @@ class OrderService {
           address: orderData.customerInfo.address
         },
         items: processedItems,
+        pricing: {
+          subtotal: totals.subtotal,
+          deliveryFee: totals.deliveryFee,
+          totalAmount: totals.total
+        },
+        delivery: {
+          fee: deliveryInfo.fee,
+          zone: deliveryInfo.zone,
+          zoneName: deliveryInfo.zoneName,
+          isFree: deliveryInfo.isFree,
+          reason: deliveryInfo.reason,
+          isExpress: deliveryOptions.isExpress,
+          timeSlot: deliveryOptions.timeSlot,
+          timeSlotName: timeSlotName
+        },
         totalAmount: totals.total,
         deliveryDate: new Date(orderData.deliveryDate),
-        deliveryTime: orderData.deliveryTime,
+        deliveryTime: timeSlotName, // Add for easier access and backward compatibility
         specialInstructions: orderData.specialInstructions?.trim() || '',
         paymentMethod: orderData.paymentMethod || 'cash_on_delivery'
+      });
+
+      // Debug: Log the totals being used
+      console.log('=== ORDER SERVICE TOTALS ===');
+      console.log('Calculated totals:', totals);
+      console.log('DeliveryInfo fee:', deliveryInfo.fee);
+      console.log('Order totalAmount:', totals.total);
+      console.log('Order pricing:', {
+        subtotal: totals.subtotal,
+        deliveryFee: finalDeliveryFee,
+        totalAmount: totals.total
       });
 
       // 6. Validate cross-field consistency
