@@ -1955,6 +1955,76 @@ app.get('/users/stats', checkDBConnection, async (req, res) => {
     });
   }
 });
+
+// GET - Fetch User's Own Orders
+app.get('/my-orders', checkDBConnection, async (req, res) => {
+  try {
+    const { token } = req.cookies;
+    if (!token) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided' 
+      });
+    }
+    
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      if (err) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Invalid token' 
+        });
+      }
+      
+      const {
+        page = 1,
+        limit = 10,
+        status = '',
+        sortBy = 'createdAt',
+        sortOrder = 'desc'
+      } = req.query;
+
+      // Build filter object
+      let filter = { 'customerInfo.email': userData.email };
+      if (status) filter.status = status;
+
+      // Pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      // Sort object
+      const sort = {};
+      sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+      const orders = await Order.find(filter)
+        .populate('items.product', 'name images price')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      const totalOrders = await Order.countDocuments(filter);
+      const totalPages = Math.ceil(totalOrders / parseInt(limit));
+
+      res.status(200).json({
+        success: true,
+        data: {
+          orders,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages,
+            totalOrders,
+            hasNextPage: parseInt(page) < totalPages,
+            hasPrevPage: parseInt(page) > 1
+          }
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Fetch user orders error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch your orders'
+    });
+  }
+});
 // ANALYTICS ENDPOINTS
 
 // GET - Revenue Analytics
