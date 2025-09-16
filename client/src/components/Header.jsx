@@ -126,9 +126,13 @@ export default function Header() {
                     >
                       Profile
                     </Link>
-                    <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors">
+                    <Link 
+                      to="/my-orders" 
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                      onClick={() => setShowDropdown(false)}
+                    >
                       My Orders
-                    </a>
+                    </Link>
                     <hr className="my-2 border-gray-200" />
                     <button 
                       onClick={handleLogout}

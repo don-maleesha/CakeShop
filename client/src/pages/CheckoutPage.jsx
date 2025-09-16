@@ -633,6 +633,7 @@ const CheckoutPage = () => {
                       className="text-red-600 focus:ring-red-500"
                     />
                     <span className="ml-3 font-medium">Online Transfer (PayHere)</span>
+
                   </label>
                 </div>
               </div>

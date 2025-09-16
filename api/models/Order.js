@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const OrderIdGenerator = require('../utils/orderIdGenerator');
 
 const orderItemSchema = new mongoose.Schema({
   product: {
@@ -176,9 +177,19 @@ const orderSchema = new mongoose.Schema({
 });
 
 // Generate order ID before saving
-orderSchema.pre('save', function(next) {
+orderSchema.pre('save', async function(next) {
   if (!this.orderId) {
-    this.orderId = 'ORD' + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase();
+    try {
+      // Determine category from order items
+      const category = OrderIdGenerator.determineCategoryFromItems(this.items);
+      
+      // Generate meaningful order ID
+      this.orderId = await OrderIdGenerator.generateOrderId(category);
+    } catch (error) {
+      console.error('Error generating order ID:', error);
+      // Fallback to simple ID generation
+      this.orderId = 'CS-' + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase();
+    }
   }
   next();
 });
