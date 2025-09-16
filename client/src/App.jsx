@@ -18,6 +18,7 @@ import OrderConfirmationPage from './pages/OrderConfirmationPage.jsx';
 import PaymentSuccessPage from './pages/PaymentSuccessPage.jsx';
 import PaymentCancelPage from './pages/PaymentCancelPage.jsx';
 import UserProfile from './pages/UserProfile.jsx';
+import MyOrdersPage from './pages/MyOrdersPage.jsx';
 
 import Layout from './Layout.jsx';
 import Users from './admin/Users';
@@ -96,6 +97,16 @@ function App() {
                 element={
                   <ProtectedUserRoute>
                     <UserProfile />
+                  </ProtectedUserRoute>
+                }
+              />
+              
+              {/* My Orders Route */}
+              <Route
+                path="my-orders"
+                element={
+                  <ProtectedUserRoute>
+                    <MyOrdersPage />
                   </ProtectedUserRoute>
                 }
               />
