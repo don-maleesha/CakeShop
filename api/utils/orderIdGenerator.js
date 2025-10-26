@@ -2,36 +2,29 @@ const mongoose = require('mongoose');
 
 /**
  * Generates a meaningful order ID with the following format:
- * CS-YYMMDD-XXX-C
+ * [Prefix]-[TypeCode]-[DateCode]-[Sequence]
  * 
  * Where:
- * CS = CakeShop prefix
- * YYMMDD = Year, Month, Day
- * XXX = Sequential number for the day (001, 002, etc.)
- * C = Category indicator (B=Birthday, W=Wedding, C=Custom, G=General)
+ * Prefix = ORD
+ * TypeCode = PRM (premade) or CUS (custom)
+ * DateCode = YYYYMMDD (full year, month, day)
+ * Sequence = 4-digit sequential number for the day (0001, 0002, etc.)
  * 
- * Example: CS-241225-001-B (First birthday cake order on Dec 25, 2024)
+ * Examples:
+ * ORD-PRM-20251024-0012 (12th premade order on Oct 24, 2025)
+ * ORD-CUS-20251024-0008 (8th custom order on Oct 24, 2025)
  */
 
 class OrderIdGenerator {
-  static async generateOrderId(orderCategory = 'general') {
+  static async generateOrderId(orderType = 'premade') {
     const now = new Date();
-    const year = now.getFullYear().toString().slice(-2); // Last 2 digits of year
+    const year = now.getFullYear().toString();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     const day = now.getDate().toString().padStart(2, '0');
     const dateStr = `${year}${month}${day}`;
     
-    // Category mapping
-    const categoryMap = {
-      'birthday': 'B',
-      'wedding': 'W',
-      'custom': 'C',
-      'anniversary': 'A',
-      'celebration': 'E',
-      'general': 'G'
-    };
-    
-    const categoryCode = categoryMap[orderCategory.toLowerCase()] || 'G';
+    // Type mapping
+    const typeCode = orderType.toLowerCase() === 'custom' ? 'CUS' : 'PRM';
     
     // Find the count of orders for today to generate sequential number
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -40,73 +33,94 @@ class OrderIdGenerator {
     
     try {
       const Order = mongoose.model('Order');
+      const CustomOrder = mongoose.model('CustomOrder');
       
-      // Count orders created today
-      const todayOrderCount = await Order.countDocuments({
+      // Count orders created today with the same type from BOTH collections
+      const pattern = `^ORD-${typeCode}-${dateStr}-`;
+      
+      // Count from Order collection
+      const orderCount = await Order.countDocuments({
+        orderId: { $regex: pattern },
         createdAt: {
           $gte: startOfDay,
           $lt: endOfDay
         }
       });
       
+      // Count from CustomOrder collection (for CUS type)
+      let customOrderCount = 0;
+      if (typeCode === 'CUS') {
+        customOrderCount = await CustomOrder.countDocuments({
+          orderId: { $regex: pattern },
+          createdAt: {
+            $gte: startOfDay,
+            $lt: endOfDay
+          }
+        });
+      }
+      
+      // Total count from both collections
+      const todayOrderCount = orderCount + customOrderCount;
+      
       // Generate sequential number (starting from 1)
-      const sequentialNumber = (todayOrderCount + 1).toString().padStart(3, '0');
+      const sequentialNumber = (todayOrderCount + 1).toString().padStart(4, '0');
       
       // Generate the order ID
-      const orderId = `CS-${dateStr}-${sequentialNumber}-${categoryCode}`;
+      const orderId = `ORD-${typeCode}-${dateStr}-${sequentialNumber}`;
       
-      // Check if this ID already exists (very unlikely but safety check)
+      // Check if this ID already exists in BOTH collections (safety check)
       const existingOrder = await Order.findOne({ orderId });
-      if (existingOrder) {
-        // If somehow it exists, add a random suffix
-        const randomSuffix = Math.random().toString(36).substr(2, 2).toUpperCase();
-        return `${orderId}${randomSuffix}`;
+      const existingCustomOrder = typeCode === 'CUS' ? await CustomOrder.findOne({ orderId }) : null;
+      
+      if (existingOrder || existingCustomOrder) {
+        // If somehow it exists, increment the sequence
+        const nextSequence = (todayOrderCount + 2).toString().padStart(4, '0');
+        return `ORD-${typeCode}-${dateStr}-${nextSequence}`;
       }
       
       return orderId;
     } catch (error) {
       console.error('Error generating order ID:', error);
       // Fallback to timestamp-based ID if database query fails
-      return `CS-${dateStr}-${Date.now().toString().slice(-6)}-${categoryCode}`;
+      const fallbackSeq = Date.now().toString().slice(-4);
+      return `ORD-${typeCode}-${dateStr}-${fallbackSeq}`;
     }
   }
 
   /**
    * Parse order ID to extract information
-   * @param {string} orderId - The order ID to parse
+   * @param {string} orderId - The order ID to parse (format: ORD-PRM-20251024-0012)
    * @returns {object} Parsed order information
    */
   static parseOrderId(orderId) {
     try {
       const parts = orderId.split('-');
-      if (parts.length < 4 || parts[0] !== 'CS') {
+      if (parts.length !== 4 || parts[0] !== 'ORD') {
         return { isValid: false };
       }
 
-      const dateStr = parts[1];
-      const sequentialNum = parts[2];
-      const categoryCode = parts[3].charAt(0);
+      const prefix = parts[0];
+      const typeCode = parts[1];
+      const dateStr = parts[2];
+      const sequentialNum = parts[3];
 
-      const year = 2000 + parseInt(dateStr.slice(0, 2));
-      const month = parseInt(dateStr.slice(2, 4));
-      const day = parseInt(dateStr.slice(4, 6));
+      const year = parseInt(dateStr.slice(0, 4));
+      const month = parseInt(dateStr.slice(4, 6));
+      const day = parseInt(dateStr.slice(6, 8));
 
-      const categoryMap = {
-        'B': 'Birthday',
-        'W': 'Wedding',
-        'C': 'Custom',
-        'A': 'Anniversary',
-        'E': 'Celebration',
-        'G': 'General'
+      const typeMap = {
+        'PRM': 'Premade',
+        'CUS': 'Custom'
       };
 
       return {
         isValid: true,
-        prefix: 'CS',
+        prefix: prefix,
+        type: typeMap[typeCode] || 'Unknown',
+        typeCode: typeCode,
         date: new Date(year, month - 1, day),
         sequentialNumber: parseInt(sequentialNum),
-        category: categoryMap[categoryCode] || 'Unknown',
-        categoryCode: categoryCode
+        formattedDate: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
       };
     } catch (error) {
       return { isValid: false };
@@ -114,37 +128,31 @@ class OrderIdGenerator {
   }
 
   /**
-   * Determine category from order items
-   * @param {Array} items - Order items
-   * @returns {string} Category name
+   * Determine order type from order data
+   * @param {Object} orderData - Order data including items
+   * @returns {string} Order type ('premade' or 'custom')
    */
-  static determineCategoryFromItems(items) {
-    if (!items || items.length === 0) {
-      return 'general';
-    }
-
-    // Check item names/descriptions for category keywords
-    const itemText = items.map(item => 
-      `${item.name || ''} ${item.description || ''}`.toLowerCase()
-    ).join(' ');
-
-    if (itemText.includes('birthday') || itemText.includes('bday')) {
-      return 'birthday';
-    }
-    if (itemText.includes('wedding')) {
-      return 'wedding';
-    }
-    if (itemText.includes('anniversary')) {
-      return 'anniversary';
-    }
-    if (itemText.includes('custom')) {
+  static determineOrderType(orderData) {
+    // Check if it's a custom order based on customization fields
+    if (orderData.isCustom || orderData.customization) {
       return 'custom';
     }
-    if (itemText.includes('celebration') || itemText.includes('party')) {
-      return 'celebration';
+
+    // Check items for custom indicators
+    if (orderData.items && orderData.items.length > 0) {
+      const hasCustomItem = orderData.items.some(item => 
+        item.isCustom || 
+        item.customization ||
+        (item.name && item.name.toLowerCase().includes('custom'))
+      );
+      
+      if (hasCustomItem) {
+        return 'custom';
+      }
     }
 
-    return 'general';
+    // Default to premade
+    return 'premade';
   }
 }
 

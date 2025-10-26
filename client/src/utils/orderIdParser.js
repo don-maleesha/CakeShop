@@ -1,45 +1,42 @@
 /**
  * Client-side utility for parsing meaningful order IDs
- * Matches the server-side OrderIdGenerator functionality
+ * Format: ORD-PRM-20251024-0012 or ORD-CUS-20251024-0008
  */
 
 export class OrderIdParser {
   /**
    * Parse order ID to extract information
-   * @param {string} orderId - The order ID to parse
+   * @param {string} orderId - The order ID to parse (format: ORD-PRM-20251024-0012)
    * @returns {object} Parsed order information
    */
   static parseOrderId(orderId) {
     try {
       const parts = orderId.split('-');
-      if (parts.length < 4 || parts[0] !== 'CS') {
+      if (parts.length !== 4 || parts[0] !== 'ORD') {
         return { isValid: false };
       }
 
-      const dateStr = parts[1];
-      const sequentialNum = parts[2];
-      const categoryCode = parts[3].charAt(0);
+      const prefix = parts[0];
+      const typeCode = parts[1];
+      const dateStr = parts[2];
+      const sequentialNum = parts[3];
 
-      const year = 2000 + parseInt(dateStr.slice(0, 2));
-      const month = parseInt(dateStr.slice(2, 4));
-      const day = parseInt(dateStr.slice(4, 6));
+      const year = parseInt(dateStr.slice(0, 4));
+      const month = parseInt(dateStr.slice(4, 6));
+      const day = parseInt(dateStr.slice(6, 8));
 
-      const categoryMap = {
-        'B': 'Birthday',
-        'W': 'Wedding',
-        'C': 'Custom',
-        'A': 'Anniversary',
-        'E': 'Celebration',
-        'G': 'General'
+      const typeMap = {
+        'PRM': 'Premade',
+        'CUS': 'Custom'
       };
 
       return {
         isValid: true,
-        prefix: 'CS',
+        prefix: prefix,
+        type: typeMap[typeCode] || 'Unknown',
+        typeCode: typeCode,
         date: new Date(year, month - 1, day),
         sequentialNumber: parseInt(sequentialNum),
-        category: categoryMap[categoryCode] || 'Unknown',
-        categoryCode: categoryCode,
         formattedDate: new Date(year, month - 1, day).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'short',
@@ -52,37 +49,29 @@ export class OrderIdParser {
   }
 
   /**
-   * Get category icon based on category code
-   * @param {string} categoryCode - The category code
+   * Get type icon based on type code
+   * @param {string} typeCode - The type code (PRM or CUS)
    * @returns {string} Icon emoji
    */
-  static getCategoryIcon(categoryCode) {
+  static getTypeIcon(typeCode) {
     const iconMap = {
-      'B': '🎂', // Birthday
-      'W': '👰', // Wedding
-      'C': '🎨', // Custom
-      'A': '💕', // Anniversary
-      'E': '🎉', // Celebration
-      'G': '🧁'  // General
+      'PRM': '🧁', // Premade
+      'CUS': '🎨'  // Custom
     };
-    return iconMap[categoryCode] || '🧁';
+    return iconMap[typeCode] || '🧁';
   }
 
   /**
-   * Get category color class based on category code
-   * @param {string} categoryCode - The category code
+   * Get type color class based on type code
+   * @param {string} typeCode - The type code (PRM or CUS)
    * @returns {string} Tailwind color class
    */
-  static getCategoryColor(categoryCode) {
+  static getTypeColor(typeCode) {
     const colorMap = {
-      'B': 'bg-pink-100 text-pink-800',     // Birthday
-      'W': 'bg-purple-100 text-purple-800', // Wedding
-      'C': 'bg-blue-100 text-blue-800',     // Custom
-      'A': 'bg-red-100 text-red-800',       // Anniversary
-      'E': 'bg-yellow-100 text-yellow-800', // Celebration
-      'G': 'bg-gray-100 text-gray-800'      // General
+      'PRM': 'bg-blue-100 text-blue-800',    // Premade
+      'CUS': 'bg-purple-100 text-purple-800' // Custom
     };
-    return colorMap[categoryCode] || 'bg-gray-100 text-gray-800';
+    return colorMap[typeCode] || 'bg-gray-100 text-gray-800';
   }
 
   /**
@@ -97,7 +86,7 @@ export class OrderIdParser {
       return {
         orderId: orderId,
         displayText: orderId,
-        category: 'Unknown',
+        type: 'Unknown',
         icon: '🧁',
         colorClass: 'bg-gray-100 text-gray-800'
       };
@@ -107,12 +96,12 @@ export class OrderIdParser {
       orderId: orderId,
       displayText: `${parsed.prefix}-${parsed.sequentialNumber}`,
       fullId: orderId,
-      category: parsed.category,
-      icon: this.getCategoryIcon(parsed.categoryCode),
-      colorClass: this.getCategoryColor(parsed.categoryCode),
+      type: parsed.type,
+      icon: this.getTypeIcon(parsed.typeCode),
+      colorClass: this.getTypeColor(parsed.typeCode),
       date: parsed.formattedDate,
       sequentialNumber: parsed.sequentialNumber,
-      tooltip: `${parsed.category} cake order #${parsed.sequentialNumber} from ${parsed.formattedDate}`
+      tooltip: `${parsed.type} order #${parsed.sequentialNumber} from ${parsed.formattedDate}`
     };
   }
 }
