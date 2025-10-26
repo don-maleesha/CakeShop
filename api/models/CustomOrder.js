@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const OrderIdGenerator = require('../utils/orderIdGenerator');
 
 const customOrderSchema = new mongoose.Schema({
   customerName: {
@@ -126,14 +127,22 @@ const customOrderSchema = new mongoose.Schema({
 });
 
 // Generate order ID before saving
-customOrderSchema.pre('save', function(next) {
+customOrderSchema.pre('save', async function(next) {
   if (!this.orderId) {
-    this.orderId = 'CO' + Date.now().toString().slice(-6);
+    try {
+      // Generate meaningful order ID using OrderIdGenerator
+      // Custom orders always use 'custom' type
+      this.orderId = await OrderIdGenerator.generateOrderId('custom');
+    } catch (error) {
+      console.error('Error generating custom order ID:', error);
+      // Fallback to simple ID generation
+      this.orderId = 'ORD-CUS-' + Date.now().toString().slice(-8) + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+    }
   }
   
   // Generate payment order ID when advance payment is required
   if (this.advanceAmount > 0 && this.advancePaymentStatus === 'pending' && !this.paymentOrderId) {
-    this.paymentOrderId = 'PAY' + this.orderId + '-ADV';
+    this.paymentOrderId = 'PAY-' + this.orderId + '-ADV';
     console.log('Generated paymentOrderId:', this.paymentOrderId, 'for order:', this.orderId);
   }
   

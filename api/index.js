@@ -13,6 +13,7 @@ const { sendEmail, createContactReplyTemplate } = require('./services/emailServi
 const { createAdvancePaymentRequestTemplate } = require('./services/customOrderEmailService');
 const paymentRoutes = require('./routes/payment');
 const { BusinessLogic } = require('./business/BusinessLogicFacade');
+const orderService = require('./business/services/OrderService');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 
@@ -1037,27 +1038,8 @@ app.put('/custom-orders/:id', checkDBConnection, async (req, res) => {
       });
     }
     
-    const updateData = { status };
-    if (estimatedPrice !== undefined) updateData.estimatedPrice = estimatedPrice;
-    if (advanceAmount !== undefined) {
-      updateData.advanceAmount = advanceAmount;
-      // If setting advance amount > 0, set payment status to pending
-      if (advanceAmount > 0) {
-        updateData.advancePaymentStatus = 'pending';
-      }
-    }
-    if (advancePaymentStatus !== undefined) updateData.advancePaymentStatus = advancePaymentStatus;
-    if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
-    if (notes !== undefined) updateData.notes = notes;
-    
-    console.log('Updating custom order with data:', updateData);
-    
-    const customOrder = await CustomOrder.findByIdAndUpdate(
-      id, 
-      updateData, 
-      { new: true }
-    );
-    
+    // Find the custom order to get its orderId
+    const customOrder = await CustomOrder.findById(id);
     if (!customOrder) {
       return res.status(404).json({ 
         success: false,
@@ -1065,23 +1047,78 @@ app.put('/custom-orders/:id', checkDBConnection, async (req, res) => {
       });
     }
     
+    // Prepare update data for the OrderService
+    const updateData = {};
+    if (estimatedPrice !== undefined) updateData.estimatedPrice = estimatedPrice;
+    if (advanceAmount !== undefined) updateData.advanceAmount = advanceAmount;
+    if (advancePaymentStatus !== undefined) updateData.advancePaymentStatus = advancePaymentStatus;
+    if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
+    if (notes !== undefined) updateData.notes = notes;
+    
+    console.log('Updating custom order with data:', { status, ...updateData });
+    
+    // Check if status is actually changing
+    if (status === customOrder.status) {
+      // Status not changing, just update other fields directly
+      console.log('Status unchanged, updating other fields only');
+      
+      if (Object.keys(updateData).length > 0) {
+        const updatedOrder = await CustomOrder.findByIdAndUpdate(
+          id,
+          updateData,
+          { new: true, runValidators: true }
+        );
+        
+        console.log('Custom order updated successfully (no status change):', {
+          orderId: updatedOrder.orderId,
+          status: updatedOrder.status
+        });
+        
+        return res.status(200).json({ 
+          success: true,
+          message: 'Custom order updated successfully',
+          order: updatedOrder
+        });
+      } else {
+        return res.status(200).json({ 
+          success: true,
+          message: 'No changes to apply',
+          order: customOrder
+        });
+      }
+    }
+    
+    // Use OrderService to update status with proper workflow validation
+    const result = await orderService.updateCustomOrderStatus(
+      customOrder.orderId,
+      status,
+      updateData
+    );
+    
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to update custom order status'
+      });
+    }
+    
     console.log('Custom order updated successfully:', {
-      orderId: customOrder.orderId,
-      paymentOrderId: customOrder.paymentOrderId,
-      advanceAmount: customOrder.advanceAmount,
-      advancePaymentStatus: customOrder.advancePaymentStatus
+      orderId: result.customOrder.orderId,
+      paymentOrderId: result.customOrder.paymentOrderId,
+      advanceAmount: result.customOrder.advanceAmount,
+      advancePaymentStatus: result.customOrder.advancePaymentStatus
     });
     
     res.status(200).json({ 
       success: true,
       message: 'Custom order updated successfully',
-      order: customOrder
+      order: result.customOrder
     });
   } catch (error) {
     console.error('Update custom order error:', error);
     res.status(500).json({ 
       success: false,
-      error: 'Failed to update custom order' 
+      error: error.message || 'Failed to update custom order'
     });
   }
 });
