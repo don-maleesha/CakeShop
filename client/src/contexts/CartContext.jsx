@@ -107,6 +107,7 @@ const cartReducer = (state, action) => {
     }
     
     case 'CLEAR_CART': {
+      console.log('🗑️ CLEAR_CART reducer called');
       return {
         ...state,
         items: []
@@ -114,6 +115,7 @@ const cartReducer = (state, action) => {
     }
     
     case 'LOAD_CART': {
+      console.log('📦 LOAD_CART reducer called with', action.payload?.length || 0, 'items');
       return {
         ...state,
         items: action.payload || []
@@ -140,9 +142,23 @@ export const CartProvider = ({ children }) => {
   // Get user from UserContext instead of managing our own state
   const { user } = useContext(UserContext);
   const [previousUser, setPreviousUser] = React.useState(null);
+  
+  // Flags for initialization and user switching
+  const [isInitialized, setIsInitialized] = React.useState(false);
+  const [isSwitchingUser, setIsSwitchingUser] = React.useState(false);
+  
+  // Use ref to always have access to the latest cart items
+  const cartItemsRef = React.useRef(state.items);
+  const skipNextSaveRef = React.useRef(false);
+  
+  // Update ref whenever items change
+  React.useEffect(() => {
+    cartItemsRef.current = state.items;
+  }, [state.items]);
 
   // Function to load cart from localStorage based on current user
   const loadUserCart = React.useCallback((user) => {
+    skipNextSaveRef.current = true; // Skip save when loading
     const cartKey = getCartKey(user);
     const savedCart = localStorage.getItem(cartKey);
     
@@ -167,46 +183,58 @@ export const CartProvider = ({ children }) => {
     console.log(`Saved cart for ${user ? `user ${user.id}` : 'guest'}:`, items.length, 'items');
   }, []);
 
-  // Function to handle user change (login/logout)
-  const handleUserChange = React.useCallback((newUser, oldUser) => {
-    console.log('🔄 User changed from', oldUser?.email || 'guest', 'to', newUser?.email || 'guest');
-    
-    // Get current items from state at the time this is called
-    const currentItems = state.items;
-    
-    // Only save if we have items and users are actually different
-    if (currentItems.length > 0 && oldUser?.id !== newUser?.id) {
-      console.log('💾 Saving cart for old user:', oldUser?.email || 'guest', 'with', currentItems.length, 'items');
-      saveUserCart(oldUser, currentItems);
-    }
-    
-    // Clear current state first to prevent mixing carts
-    console.log('🧹 Clearing cart state to prevent data mixing');
-    dispatch({ type: 'CLEAR_CART' });
-    
-    // Load cart for new user after clearing
-    setTimeout(() => {
-      console.log('📥 Loading cart for new user:', newUser?.email || 'guest');
-      loadUserCart(newUser);
-    }, 0);
-    
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saveUserCart, loadUserCart]); // Intentionally not including state.items to avoid stale closures
-
   // Watch for user changes from UserContext
   useEffect(() => {
-    if (user?.id !== previousUser?.id) {
-      console.log('👤 UserContext changed, triggering cart switch');
-      handleUserChange(user, previousUser);
+    if (user?.id !== previousUser?.id && isInitialized) {
+      console.log('👤 UserContext changed from', previousUser?.email || 'guest', 'to', user?.email || 'guest');
+      
+      // Set flag to prevent auto-saving during switch
+      setIsSwitchingUser(true);
+      
+      // Save the current cart for the previous user BEFORE switching
+      // Use ref to get the latest cart items
+      const currentItems = cartItemsRef.current;
+      
+      // Only save if previous user was logged in (not guest)
+      if (previousUser && previousUser.id && currentItems.length > 0) {
+        console.log('💾 Saving cart for previous user:', previousUser?.email, 'with', currentItems.length, 'items');
+        saveUserCart(previousUser, currentItems);
+      } else {
+        console.log('⏭️ Skipping save - previous user was guest or no items');
+      }
+      
+      // If logging out (going from logged-in user to guest), clear the guest cart
+      if (previousUser && previousUser.id && !user) {
+        console.log('🚪 User logging out - clearing guest cart');
+        localStorage.removeItem('cakeshop_cart_guest');
+      }
+      
+      // Clear current state first to prevent mixing carts
+      console.log('🧹 Clearing cart state to prevent data mixing');
+      dispatch({ type: 'CLEAR_CART' });
+      
+      // Load cart for new user immediately after clearing
+      console.log('📥 Loading cart for new user:', user?.email || 'guest');
+      loadUserCart(user);
       setPreviousUser(user);
+      
+      // Re-enable auto-save after switch is complete
+      // Use setTimeout to ensure state updates are processed
+      setTimeout(() => {
+        setIsSwitchingUser(false);
+      }, 100);
     }
-  }, [user, previousUser, handleUserChange]);
+  }, [user, previousUser, saveUserCart, loadUserCart, isInitialized]);
 
   // Load initial cart on component mount
   useEffect(() => {
-    console.log('🚀 CartProvider mounting, loading initial cart');
-    loadUserCart(user);
-  }, []); // Only run once on mount
+    if (!isInitialized) {
+      console.log('🚀 CartProvider mounting, loading initial cart for user:', user?.email || 'guest');
+      loadUserCart(user);
+      setPreviousUser(user);
+      setIsInitialized(true);
+    }
+  }, [isInitialized, user, loadUserCart]); // Removed setIsInitialized from deps
 
   // Function to migrate guest cart to user cart (when user registers/logs in)
   const migrateGuestCartToUser = React.useCallback((user) => {
@@ -227,16 +255,21 @@ export const CartProvider = ({ children }) => {
     }
   }, [loadUserCart]);
 
-  // Load initial cart on component mount
+  // Save cart to localStorage whenever cart changes (with smart skip logic)
   useEffect(() => {
-    console.log('🚀 CartProvider mounting, loading initial cart for user:', user?.email || 'guest');
-    loadUserCart(user);
-  }, [loadUserCart, user]); // Include dependencies
-
-  // Save cart to localStorage whenever cart changes
-  useEffect(() => {
-    saveUserCart(user, state.items);
-  }, [state.items, user, saveUserCart]);
+    // Skip if flagged (during load operations)
+    if (skipNextSaveRef.current) {
+      console.log('⏭️ Skipping save (loading operation)');
+      skipNextSaveRef.current = false;
+      return;
+    }
+    
+    // Only save if initialized and not switching users
+    if (isInitialized && !isSwitchingUser) {
+      console.log('💾 Auto-saving cart for', user?.email || 'guest');
+      saveUserCart(user, state.items);
+    }
+  }, [state.items, user, saveUserCart, isInitialized, isSwitchingUser]);
 
   // Check if user should see registration incentive
   const shouldShowRegistrationIncentive = (currentItems, product) => {
