@@ -39,6 +39,10 @@ app.use('/payment', paymentRoutes);
 const deliveryRoutes = require('./routes/delivery');
 app.use('/delivery', deliveryRoutes);
 
+// Analytics routes
+const analyticsRoutes = require('./routes/analytics');
+app.use('/analytics', analyticsRoutes);
+
 // Add request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);

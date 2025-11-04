@@ -33,6 +33,7 @@ import CustomOrderManagement from './admin/CustomOrderManagement.jsx';
 import OrderManagement from './admin/OrderManagement.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
 import Dashboard from './admin/Dashboard.jsx';
+import Analytics from './admin/Analytics.jsx';
 
 function App() {
   return (
@@ -55,6 +56,7 @@ function App() {
               <Route path="products" element={<ProductManagement />} />
               <Route path="orders" element={<OrderManagement />} />
               <Route path="categories" element={<Category_management />} />
+              <Route path="analytics" element={<Analytics />} />
               <Route path="custom-orders" element={<CustomOrderManagement />} />
               <Route path="users" element={<Users />} />
               <Route path="contacts" element={<ContactManagement />} />
