@@ -144,6 +144,23 @@ const ProductSchema = new Schema({
         type: Number,
         default: 0,
         min: 0
+    },
+    // Reviews & Ratings
+    averageRating: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5
+    },
+    totalReviews: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    ratingDistribution: {
+        type: Map,
+        of: Number,
+        default: () => new Map([[1, 0], [2, 0], [3, 0], [4, 0], [5, 0]])
     }
 }, {
     timestamps: true

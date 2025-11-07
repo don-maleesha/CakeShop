@@ -10,6 +10,7 @@ import { DeliveryProvider } from './contexts/DeliveryContext.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import CakesPage from './pages/CakesPage.jsx';
+import ProductDetailPage from './pages/ProductDetailPage.jsx';
 import CustomOrder from './pages/CustomOrder.jsx';
 import Contact from './pages/Contact.jsx';
 import CartPage from './pages/CartPage.jsx';
@@ -34,6 +35,7 @@ import OrderManagement from './admin/OrderManagement.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
 import Dashboard from './admin/Dashboard.jsx';
 import Analytics from './admin/Analytics.jsx';
+import ReviewManagement from './admin/ReviewManagement.jsx';
 
 function App() {
   return (
@@ -60,6 +62,7 @@ function App() {
               <Route path="custom-orders" element={<CustomOrderManagement />} />
               <Route path="users" element={<Users />} />
               <Route path="contacts" element={<ContactManagement />} />
+              <Route path="reviews" element={<ReviewManagement />} />
             </Route>
 
             {/* Public Routes */}
@@ -77,6 +80,7 @@ function App() {
               <Route path="register" element={<RegisterPage />} />
               <Route path="home" element={<HomePage />} />
               <Route path="cakes" element={<CakesPage />} />
+              <Route path="product/:productId" element={<ProductDetailPage />} />
               <Route path="cart" element={<CartPage />} />
               <Route path="checkout" element={<CheckoutPage />} />
               <Route path="order-confirmation" element={<OrderConfirmationPage />} />

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 import { Filter, Plus, Loader2 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import StarRating from '../components/StarRating';
 
 // Pagination component
 const Pagination = ({ totalPages, currentPage, onPageChange }) => {
@@ -88,16 +90,16 @@ Pagination.propTypes = {
 
 const CakesPage = () => {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [categoryPage, setCategoryPage] = useState(1);
   const categoriesPerPage = 8;
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categorySearch, setCategorySearch] = useState("");
   const [categorySort, setCategorySort] = useState("name-asc");
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy] = useState('name');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [categoryPages, setCategoryPages] = useState({}); // Separate page state for each category
   const [itemsPerPage] = useState(6); // 6 products per page
   const [state, setState] = useState({
     categories: [],
@@ -208,11 +210,10 @@ const CakesPage = () => {
   };
 
   // Reset current page when category or sort changes
+  // Reset current page when category or sort changes
   useEffect(() => {
     setCurrentPage(1);
-    setCategoryPages({}); // Reset all category pages
   }, [selectedCategory, sortBy]);
-
   // (Removed unused getCategoryPage and setCategoryPage functions)
 
   // Pagination helper function
@@ -416,44 +417,64 @@ const CakesPage = () => {
                   <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
                     {paginatedData.products.map((product) => (
                       <div key={product._id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-                        <img
-                          src={product.images?.[0] || '/src/assets/react.svg'}
-                          alt={product.name}
-                          className="w-full h-64 object-cover"
-                          onError={(e) => {
-                            e.target.src = '/src/assets/react.svg'; // Fallback image
-                          }}
-                        />
-                        <div className="p-6">
-                          <h3 className="text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
-                          <p className="text-gray-600 mb-2">{product.description}</p>
-                          {product.sizes && product.sizes.length > 0 && (
-                            <p className="text-sm text-gray-500 mb-2">
-                              Available sizes: {product.sizes.map(size => size.name).join(', ')}
-                            </p>
-                          )}
-                          
-                          {/* Stock Status Display */}
-                          <div className="mb-3">
-                            {!product.isActive ? (
-                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
-                                Unavailable
-                              </span>
-                            ) : product.stockQuantity === 0 ? (
-                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
-                                Out of Stock
-                              </span>
-                            ) : product.stockQuantity <= product.lowStockThreshold ? (
-                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
-                                Low Stock ({product.stockQuantity} left)
-                              </span>
-                            ) : (
-                              <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                                In Stock ({product.stockQuantity} available)
-                              </span>
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/product/${product._id}`)}
+                        >
+                          <img
+                            src={product.images?.[0] || '/src/assets/react.svg'}
+                            alt={product.name}
+                            className="w-full h-64 object-cover"
+                            onError={(e) => {
+                              e.target.src = '/src/assets/react.svg'; // Fallback image
+                            }}
+                          />
+                          <div className="p-6">
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
+                            
+                            {/* Product Rating */}
+                            {product.averageRating > 0 && (
+                              <div className="mb-2">
+                                <StarRating 
+                                  rating={product.averageRating} 
+                                  totalReviews={product.totalReviews}
+                                  size="small"
+                                  showCount={true}
+                                />
+                              </div>
                             )}
+                            
+                            <p className="text-gray-600 mb-2">{product.description}</p>
+                            {product.sizes && product.sizes.length > 0 && (
+                              <p className="text-sm text-gray-500 mb-2">
+                                Available sizes: {product.sizes.map(size => size.name).join(', ')}
+                              </p>
+                            )}
+                            
+                            {/* Stock Status Display */}
+                            <div className="mb-3">
+                              {!product.isActive ? (
+                                <span className="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                                  Unavailable
+                                </span>
+                              ) : product.stockQuantity === 0 ? (
+                                <span className="inline-block px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                                  Out of Stock
+                                </span>
+                              ) : product.stockQuantity <= product.lowStockThreshold ? (
+                                <span className="inline-block px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                                  Low Stock ({product.stockQuantity} left)
+                                </span>
+                              ) : (
+                                <span className="inline-block px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                  In Stock ({product.stockQuantity} available)
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          
+                        </div>
+                        
+                        <div className="p-6 pt-0">
                           <div className="flex items-center justify-between">
                             <span className="text-2xl font-bold text-red-500">
                               LKR {product.discountPrice || product.price}
@@ -464,7 +485,10 @@ const CakesPage = () => {
                               )}
                             </span>
                             <button
-                              onClick={() => handleProductAddToCart(product)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleProductAddToCart(product);
+                              }}
                               disabled={!product.isActive || product.stockQuantity === 0}
                               className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
                                 !product.isActive || product.stockQuantity === 0
