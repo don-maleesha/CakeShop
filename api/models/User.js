@@ -36,6 +36,20 @@ const UserSchema = new Schema({
         type: String,
         enum: ['user', 'admin'],
         default: 'user'
+    },
+    // Password reset fields
+    resetPasswordCodeHash: {
+        type: String,
+        select: false
+    },
+    resetPasswordExpires: {
+        type: Date,
+        index: true
+    },
+    resetAttempts: {
+        type: Number,
+        default: 0,
+        select: false
     }
 }, {
     timestamps: true

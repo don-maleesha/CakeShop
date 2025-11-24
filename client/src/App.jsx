@@ -19,6 +19,8 @@ import OrderConfirmationPage from './pages/OrderConfirmationPage.jsx';
 import PaymentSuccessPage from './pages/PaymentSuccessPage.jsx';
 import PaymentCancelPage from './pages/PaymentCancelPage.jsx';
 import UserProfile from './pages/UserProfile.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import MyOrdersPage from './pages/MyOrdersPage.jsx';
 
 import Layout from './Layout.jsx';
@@ -77,6 +79,8 @@ function App() {
                 }
               />
               <Route path="login" element={<LoginPage />} />
+              <Route path="forgot-password" element={<ForgotPassword />} />
+              <Route path="reset-password" element={<ResetPassword />} />
               <Route path="register" element={<RegisterPage />} />
               <Route path="home" element={<HomePage />} />
               <Route path="cakes" element={<CakesPage />} />

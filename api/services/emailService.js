@@ -44,13 +44,18 @@ const createTransporter = () => {
   // Gmail configuration for development/testing
   console.log('📧 Configuring Gmail SMTP with credentials...');
   console.log('📧 Email User:', process.env.EMAIL_USER);
-  console.log('📧 Using Gmail service for email sending');
+  // Remove accidental spaces from app password
+  const sanitizedPass = process.env.EMAIL_PASS.replace(/\s+/g,'');
+  if (sanitizedPass !== process.env.EMAIL_PASS) {
+    console.log('� Sanitized EMAIL_PASS by removing spaces.');
+  }
+  console.log('�📧 Using Gmail service for email sending');
   
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+      pass: sanitizedPass
     }
   });
 };
@@ -321,8 +326,44 @@ Sweet Moments, Delivered with Love
   return { html, text };
 };
 
+// Create password reset code email template
+const createPasswordResetCodeTemplate = (customerName, code) => {
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Reset your password</title>
+      <style>
+        body { font-family: Arial, sans-serif; background:#f6f7fb; padding:24px; }
+        .card { max-width:600px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.08); overflow:hidden; }
+        .header { background:linear-gradient(135deg,#ff7a7a,#ffb86c); color:#fff; padding:24px; text-align:center; }
+        .content { padding:24px; color:#333; }
+        .code { font-size:32px; letter-spacing:8px; font-weight:800; background:#fff7ed; color:#c2410c; padding:12px 16px; border-radius:10px; text-align:center; border:1px dashed #fdba74; }
+        .muted { color:#6b7280; font-size:14px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="header">🧁 CakeShop • Password Reset</div>
+        <div class="content">
+          <p>Hi ${customerName || 'there'},</p>
+          <p>Use the following verification code to reset your password. This code will expire in <strong>15 minutes</strong>.</p>
+          <div class="code">${code}</div>
+          <p class="muted">If you didn't request this, you can safely ignore this email.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  const text = `Hi ${customerName || 'there'},\n\nYour password reset code is: ${code}\nThis code expires in 15 minutes. If you didn't request this, ignore this email.`;
+  return { html, text };
+};
+
 module.exports = {
   sendEmail,
   createContactReplyTemplate,
-  createTransporter
+  createTransporter,
+  createPasswordResetCodeTemplate
 };
