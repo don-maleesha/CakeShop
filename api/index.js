@@ -12,6 +12,7 @@ const Order = require('./models/Order');
 const { sendEmail, createContactReplyTemplate } = require('./services/emailService');
 const { createAdvancePaymentRequestTemplate } = require('./services/customOrderEmailService');
 const paymentRoutes = require('./routes/payment');
+const authRoutes = require('./routes/auth');
 const { BusinessLogic } = require('./business/BusinessLogicFacade');
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
@@ -33,6 +34,8 @@ app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 
 // Payment routes
 app.use('/payment', paymentRoutes);
+// Auth routes (forgot/reset password)
+app.use('/auth', authRoutes);
 
 // Delivery routes
 const deliveryRoutes = require('./routes/delivery');
