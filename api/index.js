@@ -50,6 +50,12 @@ app.use('/analytics', analyticsRoutes);
 const reviewRoutes = require('./routes/reviews');
 app.use('/reviews', reviewRoutes);
 
+// Wishlist routes
+console.log('Loading wishlist routes...');
+const wishlistRoutes = require('./routes/wishlist');
+app.use('/wishlist', wishlistRoutes);
+console.log('✅ Wishlist routes registered at /wishlist');
+
 // Add request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
