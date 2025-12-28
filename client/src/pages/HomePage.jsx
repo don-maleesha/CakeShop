@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Star, Award, Clock, Plus, Loader2 } from 'lucide-react';
+import { ArrowRight, Star, Award, Clock, Plus, Loader2, Heart } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useWishlist } from '../contexts/useWishlist';
+import UserContext from './UserContext';
 
 const HomePage = () => {
   const { addToCart } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
+  const { user } = useContext(UserContext);
   const [featuredCakes, setFeaturedCakes] = useState([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
 
@@ -283,7 +287,7 @@ const HomePage = () => {
                     )}
                   </div>
                   
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-2xl font-bold text-red-500">
                       LKR {(product.discountPrice || product.price).toLocaleString()}
                       {product.discountPrice && (
@@ -292,18 +296,36 @@ const HomePage = () => {
                         </span>
                       )}
                     </span>
-                    <button 
-                      onClick={() => handleAddToCart(product)}
-                      disabled={!product.isActive || product.stockQuantity === 0}
-                      className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
-                        !product.isActive || product.stockQuantity === 0
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-red-500 text-white hover:bg-red-600'
-                      }`}
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add to Cart</span>
-                    </button>
+                    <div className="flex gap-2">
+                      {user && (
+                        <button
+                          onClick={() => toggleWishlist(product._id)}
+                          className={`p-2 rounded-lg border transition-colors ${
+                            isInWishlist(product._id)
+                              ? 'bg-red-500 border-red-500 text-white'
+                              : 'border-gray-300 text-gray-600 hover:border-red-500 hover:text-red-500'
+                          }`}
+                          title={isInWishlist(product._id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                        >
+                          <Heart 
+                            className="w-4 h-4" 
+                            fill={isInWishlist(product._id) ? 'currentColor' : 'none'}
+                          />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => handleAddToCart(product)}
+                        disabled={!product.isActive || product.stockQuantity === 0}
+                        className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
+                          !product.isActive || product.stockQuantity === 0
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-red-500 text-white hover:bg-red-600'
+                        }`}
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add to Cart</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

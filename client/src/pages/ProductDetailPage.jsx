@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Minus, ShoppingCart, ArrowLeft, Loader2 } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, ArrowLeft, Loader2, Heart } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useCart } from '../contexts/CartContext';
+import { useWishlist } from '../contexts/useWishlist';
 import UserContext from '../pages/UserContext';
 import StarRating from '../components/StarRating';
 import ReviewDisplay from '../components/ReviewDisplay';
@@ -13,6 +14,7 @@ const ProductDetailPage = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const { user } = useContext(UserContext);
   
   const [product, setProduct] = useState(null);
@@ -347,18 +349,38 @@ const ProductDetailPage = () => {
               </div>
 
               {/* Add to Cart Button */}
-              <button
-                onClick={handleAddToCart}
-                disabled={!product.isActive || product.stockQuantity === 0}
-                className={`w-full py-4 rounded-lg font-semibold text-lg transition-all flex items-center justify-center space-x-2 ${
-                  !product.isActive || product.stockQuantity === 0
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-red-500 text-white hover:bg-red-600 shadow-lg hover:shadow-xl'
-                }`}
-              >
-                <ShoppingCart className="w-6 h-6" />
-                <span>Add to Cart</span>
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!product.isActive || product.stockQuantity === 0}
+                  className={`flex-1 py-4 rounded-lg font-semibold text-lg transition-all flex items-center justify-center space-x-2 ${
+                    !product.isActive || product.stockQuantity === 0
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-red-500 text-white hover:bg-red-600 shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  <ShoppingCart className="w-6 h-6" />
+                  <span>Add to Cart</span>
+                </button>
+
+                {/* Wishlist Button */}
+                {user && (
+                  <button
+                    onClick={() => toggleWishlist(productId)}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      isInWishlist(productId)
+                        ? 'bg-red-500 border-red-500 text-white'
+                        : 'border-gray-300 text-gray-600 hover:border-red-500 hover:text-red-500'
+                    }`}
+                    title={isInWishlist(productId) ? 'Remove from wishlist' : 'Add to wishlist'}
+                  >
+                    <Heart 
+                      className="w-6 h-6" 
+                      fill={isInWishlist(productId) ? 'currentColor' : 'none'}
+                    />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
