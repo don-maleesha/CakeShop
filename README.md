@@ -10,7 +10,7 @@ A modern, full-featured e-commerce platform for a cake shop built with React and
 - ❤️ **Wishlist** - Save favorite cakes for later
 - 🎨 **Custom Orders** - Request personalized cakes with specific requirements
 - 📦 **Order Tracking** - Track order status and delivery progress
-- 💳 **Multiple Payment Methods** - Cash on Delivery, Online Transfer, PayHere integration
+- 💳 **Multiple Payment Methods** - Cash on Delivery, PayHere integration
 - 🚚 **Smart Delivery** - Zone-based delivery fees with express options
 - ⭐ **Reviews & Ratings** - View and submit product reviews
 - 👤 **User Accounts** - Register, login, and manage profile with remember me feature
