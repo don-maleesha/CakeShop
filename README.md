@@ -1,4 +1,4 @@
-# 🍰 CakeShop - Client Application
+# 🍰 CakeShop - Application
 
 A modern, full-featured e-commerce platform for a cake shop built with React and Vite. This is the frontend client application that provides a beautiful, responsive interface for customers to browse, order, and customize cakes.
 
