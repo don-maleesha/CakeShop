@@ -4,6 +4,7 @@ import { Heart, ShoppingCart, Trash2, ArrowLeft } from 'lucide-react';
 import { useWishlist } from '../contexts/useWishlist';
 import { useCart } from '../contexts/CartContext';
 import UserContext from './UserContext';
+import { showSuccess } from '../utils/toast';
 
 const WishlistPage = () => {
   const { wishlistItems, removeFromWishlist, clearWishlist, loading } = useWishlist();
@@ -19,15 +20,13 @@ const WishlistPage = () => {
   };
 
   const handleClearAll = async () => {
-    if (window.confirm('Are you sure you want to clear your entire wishlist?')) {
-      await clearWishlist();
-    }
+    await clearWishlist();
   };
 
   const handleMoveToCart = async (product) => {
     addToCart(product.product, 1);
     await removeFromWishlist(product.product._id);
-    alert(`${product.product.name} moved to cart!`);
+    showSuccess(`${product.product.name} moved to cart!`);
   };
 
   if (!user) {

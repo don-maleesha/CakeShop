@@ -11,6 +11,7 @@ import {
   IoEye,
   IoSend
 } from 'react-icons/io5';
+import { showSuccess, showError, showWarning } from '../utils/toast';
 
 const CustomOrderManagement = () => {
   const [orders, setOrders] = useState([]);
@@ -68,21 +69,21 @@ const CustomOrderManagement = () => {
             });
             
             if (emailResponse.data.success) {
-              alert('Order updated successfully and payment notification email sent!');
+              showSuccess('Order updated successfully and payment notification email sent!');
             } else {
-              alert('Order updated successfully, but failed to send email notification.');
+              showWarning('Order updated successfully, but failed to send email notification.');
             }
           } catch (emailError) {
             console.error('Email sending error:', emailError);
-            alert('Order updated successfully, but failed to send email notification.');
+            showWarning('Order updated successfully, but failed to send email notification.');
           }
         } else {
-          alert('Order updated successfully!');
+          showSuccess('Order updated successfully!');
         }
       }
     } catch (error) {
       console.error('Error updating order:', error);
-      alert('Failed to update order');
+      showError('Failed to update order');
     } finally {
       setActionLoading(false);
     }
@@ -251,7 +252,7 @@ const OrderDetailsModal = ({ order, onClose, onStatusUpdate, actionLoading }) =>
 
   const handleConfirmOrder = () => {
     if (!estimatedPrice) {
-      alert('Please enter estimated price');
+      showWarning('Please enter estimated price');
       return;
     }
     onStatusUpdate(order._id, 'confirmed', parseFloat(estimatedPrice), parseFloat(advanceAmount) || 0, adminNotes);

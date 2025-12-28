@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import UserContext from '../pages/UserContext';
 import { WishlistContext } from './wishlistContextDefinition';
+import { showSuccess, showError, showWarning } from '../utils/toast';
 
 export function WishlistProvider({ children }) {
   const [wishlistItems, setWishlistItems] = useState([]);
@@ -41,36 +42,32 @@ export function WishlistProvider({ children }) {
 
   const addToWishlist = async (productId) => {
     if (!user) {
-      alert('Please login to add items to wishlist');
+      showWarning('Please login to add items to wishlist');
       return false;
     }
 
     try {
-      console.log('Adding to wishlist:', productId);
       const response = await axios.post(
         `http://localhost:4000/wishlist/add/${productId}`,
         {},
         { withCredentials: true }
       );
 
-      console.log('Wishlist add response:', response.data);
-
       if (response.data.success) {
         setWishlistItems(response.data.data.products);
+        showSuccess('Added to wishlist!');
         return true;
       }
       return false;
     } catch (error) {
       console.error('Add to wishlist error:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
       
       if (error.response?.data?.error) {
-        alert(`Failed to add to wishlist: ${error.response.data.error}`);
+        showError(error.response.data.error);
       } else if (error.response?.status === 401) {
-        alert('Authentication failed. Please login again.');
+        showError('Authentication failed. Please login again.');
       } else {
-        alert(`Failed to add to wishlist: ${error.message || 'Unknown error'}`);
+        showError('Failed to add to wishlist. Please try again.');
       }
       return false;
     }
@@ -87,12 +84,13 @@ export function WishlistProvider({ children }) {
 
       if (response.data.success) {
         setWishlistItems(response.data.data.products);
+        showSuccess('Removed from wishlist');
         return true;
       }
       return false;
     } catch (error) {
       console.error('Remove from wishlist error:', error);
-      alert('Failed to remove from wishlist');
+      showError('Failed to remove from wishlist');
       return false;
     }
   };
@@ -114,12 +112,13 @@ export function WishlistProvider({ children }) {
 
       if (response.data.success) {
         setWishlistItems([]);
+        showSuccess('Wishlist cleared successfully');
         return true;
       }
       return false;
     } catch (error) {
       console.error('Clear wishlist error:', error);
-      alert('Failed to clear wishlist');
+      showError('Failed to clear wishlist');
       return false;
     }
   };

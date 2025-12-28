@@ -4,6 +4,7 @@ import { ArrowRight, Star, Award, Clock, Plus, Loader2, Heart } from 'lucide-rea
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/useWishlist';
 import UserContext from './UserContext';
+import { showSuccess, showError, showWarning } from '../utils/toast';
 
 const HomePage = () => {
   const { addToCart } = useCart();
@@ -109,27 +110,20 @@ const HomePage = () => {
     try {
       // Check stock availability
       if (!product.isActive) {
-        alert('This product is currently unavailable.');
+        showWarning('This product is currently unavailable.');
         return;
       }
       
       if (product.stockQuantity <= 0) {
-        alert(`Sorry, ${product.name} is currently out of stock.`);
+        showError(`Sorry, ${product.name} is currently out of stock.`);
         return;
       }
       
-      if (product.stockQuantity <= (product.lowStockThreshold || 5)) {
-        const confirmed = window.confirm(
-          `${product.name} is running low in stock (${product.stockQuantity} left). Would you like to add it to cart?`
-        );
-        if (!confirmed) return;
-      }
-      
       addToCart(product, 1, selectedSize);
-      alert(`${product.name}${selectedSize ? ` (${selectedSize.name})` : ''} added to cart!`);
+      showSuccess(`${product.name}${selectedSize ? ` (${selectedSize.name})` : ''} added to cart!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
-      alert('Failed to add item to cart. Please try again.');
+      showError('Failed to add item to cart. Please try again.');
     }
   };
 

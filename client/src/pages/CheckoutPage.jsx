@@ -8,6 +8,7 @@ import PayHereForm from '../components/PayHereForm';
 import DeliveryProgressIndicator from '../components/DeliveryProgressIndicator';
 import DeliveryZoneSelector from '../components/DeliveryZoneSelector';
 import axios from 'axios';
+import { showError } from '../utils/toast';
 
 const CheckoutPage = () => {
   const { items, cartTotal, clearCart } = useCart();
@@ -85,7 +86,7 @@ const CheckoutPage = () => {
   const handlePaymentError = (error) => {
     console.log("PayHere Error: " + error);
     setPaymentData(null);
-    alert('Payment error: ' + error);
+    showError('Payment error: ' + error);
     navigate('/payment/cancel');
   };
 
@@ -246,7 +247,7 @@ const CheckoutPage = () => {
             const errorMessage = paymentError.response?.data?.error ||
               paymentError.message ||
               'Failed to initialize payment. Please try again.';
-            alert('Payment initialization failed: ' + errorMessage);
+            showError('Payment initialization failed: ' + errorMessage);
             return;
           }
         } else {
@@ -271,7 +272,7 @@ const CheckoutPage = () => {
                           error.message || 
                           'Failed to place order. Please try again.';
       
-      alert(`Order failed: ${errorMessage}`);
+      showError(`Order failed: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

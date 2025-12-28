@@ -107,10 +107,6 @@ const ReviewManagement = () => {
   };
 
   const handleDelete = async (reviewId) => {
-    if (!window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-      return;
-    }
-
     try {
       const response = await axios.delete(
         `http://localhost:4000/reviews/admin/${reviewId}`,

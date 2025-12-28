@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { showError } from '../utils/toast';
 
 const PayHereForm = ({ paymentData, onSuccess, onError, onCancel }) => {
   const [isPayHereReady, setIsPayHereReady] = useState(false);
@@ -70,7 +71,7 @@ const PayHereForm = ({ paymentData, onSuccess, onError, onCancel }) => {
     // Check if PayHere SDK is loaded
     if (!window.payhere) {
       console.error('PayHere SDK not loaded');
-      alert('PayHere payment system is not loaded. Please refresh the page and try again.');
+      showError('PayHere payment system is not loaded. Please refresh the page and try again.');
       if (onError) {
         onError('PayHere SDK not loaded');
       }
