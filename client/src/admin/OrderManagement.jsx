@@ -21,6 +21,7 @@ import {
   Mail,
   Phone
 } from 'lucide-react';
+import { showSuccess, showError } from '../utils/toast';
 
 function OrderManagement() {
   const [orders, setOrders] = useState([]);
@@ -115,11 +116,11 @@ function OrderManagement() {
         setShowEditModal(false);
         setSelectedOrder(null);
         fetchOrders(); // Refresh orders list
-        alert('Order updated successfully!');
+        showSuccess('Order updated successfully!');
       }
     } catch (error) {
       console.error('Error updating order:', error);
-      alert('Failed to update order. Please try again.');
+      showError('Failed to update order. Please try again.');
     }
   };
 

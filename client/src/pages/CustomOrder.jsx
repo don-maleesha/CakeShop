@@ -4,6 +4,7 @@ import axios from 'axios';
 import { IoPerson, IoCalendar, IoRestaurant, IoTime, IoMail, IoCall, IoCash, IoCard } from 'react-icons/io5';
 import UserContext from './UserContext.jsx';
 import PayHereForm from '../components/PayHereForm.jsx';
+import { showSuccess, showError } from '../utils/toast';
 
 export default function CustomOrder() {
   const { user } = useContext(UserContext);
@@ -86,7 +87,7 @@ export default function CustomOrder() {
       }
     } catch (error) {
       console.error('Custom order submission error:', error);
-      alert(error.response?.data?.error || 'Failed to submit order. Please try again.');
+      showError(error.response?.data?.error || 'Failed to submit order. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -103,11 +104,11 @@ export default function CustomOrder() {
         setPaymentData(response.data.data);
         setSelectedOrder(order);
       } else {
-        alert(response.data.error || 'Failed to initialize payment');
+        showError(response.data.error || 'Failed to initialize payment');
       }
     } catch (error) {
       console.error('Payment initialization error:', error);
-      alert(error.response?.data?.error || 'Failed to initialize payment');
+      showError(error.response?.data?.error || 'Failed to initialize payment');
     } finally {
       setLoading(false);
     }
@@ -121,14 +122,14 @@ export default function CustomOrder() {
     // Refresh orders to show updated payment status
     await fetchPreviousOrders();
     
-    alert('Payment successful! Your advance payment has been processed.');
+    showSuccess('Payment successful! Your advance payment has been processed.');
   };
 
   const handlePaymentError = (error) => {
     console.error('Payment error:', error);
     setPaymentData(null);
     setSelectedOrder(null);
-    alert('Payment failed. Please try again or contact support.');
+    showError('Payment failed. Please try again or contact support.');
   };
 
   const handlePaymentCancel = () => {

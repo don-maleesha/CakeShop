@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { IoCall, IoMail, IoLocationSharp } from 'react-icons/io5';
+import { showError } from '../utils/toast';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -36,7 +37,7 @@ export default function Contact() {
       }
     } catch (error) {
       console.error('Contact form submission error:', error);
-      alert(error.response?.data?.error || 'Failed to send message. Please try again.');
+      showError(error.response?.data?.error || 'Failed to send message. Please try again.');
     }
   };
 

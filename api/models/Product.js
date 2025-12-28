@@ -160,7 +160,7 @@ const ProductSchema = new Schema({
     ratingDistribution: {
         type: Map,
         of: Number,
-        default: () => new Map([[1, 0], [2, 0], [3, 0], [4, 0], [5, 0]])
+        default: () => new Map([['1', 0], ['2', 0], ['3', 0], ['4', 0], ['5', 0]])
     }
 }, {
     timestamps: true
