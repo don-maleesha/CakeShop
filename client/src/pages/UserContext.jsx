@@ -26,6 +26,18 @@ export function UserContextProvider({ children }) {
     }
   }, []);
 
+  // Keep storage in sync when user changes
+  useEffect(() => {
+    if (user) {
+      // Update whichever storage was being used
+      if (localStorage.getItem('user')) {
+        localStorage.setItem('user', JSON.stringify(user));
+      } else if (sessionStorage.getItem('user')) {
+        sessionStorage.setItem('user', JSON.stringify(user));
+      }
+    }
+  }, [user]);
+
   const fetchUserProfile = async () => {
     try {
       const { data } = await axios.get('/api/profile', { withCredentials: true });
