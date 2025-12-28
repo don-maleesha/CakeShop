@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import { UserContextProvider } from './pages/UserContext.jsx';
 import { CartProvider } from './contexts/CartContext.jsx';
 import { DeliveryProvider } from './contexts/DeliveryContext.jsx';
+import { WishlistProvider } from './contexts/WishlistContext.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import CakesPage from './pages/CakesPage.jsx';
@@ -22,6 +23,7 @@ import UserProfile from './pages/UserProfile.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import MyOrdersPage from './pages/MyOrdersPage.jsx';
+import WishlistPage from './pages/WishlistPage.jsx';
 
 import Layout from './Layout.jsx';
 import Users from './admin/Users';
@@ -43,9 +45,10 @@ function App() {
   return (
     <>
       <UserContextProvider>
-        <CartProvider>
-          <DeliveryProvider>
-          <Routes>
+        <WishlistProvider>
+          <CartProvider>
+            <DeliveryProvider>
+            <Routes>
             {/* Admin Routes - Protected */}
             <Route
               path="/admin"
@@ -121,11 +124,22 @@ function App() {
                 }
               />
               
+              {/* Wishlist Route */}
+              <Route
+                path="wishlist"
+                element={
+                  <ProtectedUserRoute>
+                    <WishlistPage />
+                  </ProtectedUserRoute>
+                }
+              />
+              
               <Route path="contact" element={<Contact />} />
             </Route>
-          </Routes>
-          </DeliveryProvider>
-        </CartProvider>
+            </Routes>
+            </DeliveryProvider>
+          </CartProvider>
+        </WishlistProvider>
       </UserContextProvider>
     </>
   );

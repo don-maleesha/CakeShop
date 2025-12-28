@@ -1,12 +1,14 @@
 import { useContext, useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Heart } from 'lucide-react';
 import UserContext from '../pages/UserContext';
 import { useCart } from '../contexts/CartContext';
+import { useWishlist } from '../contexts/useWishlist';
 
 export default function Header() {
   const { user, logout } = useContext(UserContext);
   const { cartItemsCount, toggleCart } = useCart();
+  const { wishlistCount } = useWishlist();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -70,6 +72,21 @@ export default function Header() {
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-4">
+            {/* Wishlist Button */}
+            {user && (
+              <Link
+                to="/wishlist"
+                className="relative text-gray-900 hover:text-red-500 transition-colors p-2"
+              >
+                <Heart className="w-6 h-6" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {/* Cart Button */}
             <button 
               onClick={toggleCart}
@@ -125,6 +142,13 @@ export default function Header() {
                       onClick={() => setShowDropdown(false)}
                     >
                       Profile
+                    </Link>
+                    <Link 
+                      to="/wishlist" 
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      ❤️ Wishlist
                     </Link>
                     <Link 
                       to="/my-orders" 
