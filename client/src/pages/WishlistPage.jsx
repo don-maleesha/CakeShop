@@ -38,7 +38,7 @@ const WishlistPage = () => {
           <p className="text-gray-600 mb-6">Please login to view your wishlist</p>
           <Link
             to="/login"
-            className="inline-block bg-primary text-white px-6 py-2 rounded hover:bg-primary/90 transition-colors"
+            className="inline-block bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 transition-colors"
           >
             Login
           </Link>
@@ -51,7 +51,7 @@ const WishlistPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading wishlist...</p>
         </div>
       </div>
@@ -104,7 +104,7 @@ const WishlistPage = () => {
             </p>
             <Link
               to="/cakes"
-              className="inline-block bg-primary text-white px-6 py-3 rounded hover:bg-primary/90 transition-colors"
+              className="inline-block bg-red-500 text-white px-6 py-3 rounded hover:bg-red-600 transition-colors"
             >
               Browse Cakes
             </Link>
@@ -137,13 +137,13 @@ const WishlistPage = () => {
                   {/* Product Info */}
                   <div className="p-4">
                     <Link to={`/product/${product._id}`}>
-                      <h3 className="text-lg font-semibold text-gray-900 hover:text-primary mb-1">
+                      <h3 className="text-lg font-semibold text-gray-900 hover:text-red-600 mb-1">
                         {product.name}
                       </h3>
                     </Link>
                     
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-xl font-bold text-primary">
+                      <p className="text-xl font-bold text-red-600">
                         Rs. {product.price?.toLocaleString()}
                       </p>
                       {product.rating > 0 && (
@@ -177,7 +177,7 @@ const WishlistPage = () => {
                         className={`flex-1 flex items-center justify-center py-2 px-3 rounded text-sm font-medium transition-colors ${
                           product.stockQuantity <= 0
                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-primary text-white hover:bg-primary/90'
+                            : 'bg-red-500 text-white hover:bg-red-600'
                         }`}
                       >
                         <ShoppingCart className="w-4 h-4 mr-1" />
@@ -209,7 +209,7 @@ const WishlistPage = () => {
           <div className="mt-8 text-center">
             <Link
               to="/cakes"
-              className="inline-block bg-white text-primary border border-primary px-6 py-3 rounded hover:bg-primary hover:text-white transition-colors"
+              className="inline-block bg-white text-red-600 border border-red-500 px-6 py-3 rounded hover:bg-red-500 hover:text-white transition-colors"
             >
               Continue Shopping
             </Link>

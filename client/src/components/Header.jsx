@@ -39,7 +39,7 @@ export default function Header() {
         <div className="flex justify-between items-center py-4">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-xl">🧁</span>
             </div>
             <div>
@@ -50,22 +50,22 @@ export default function Header() {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-gray-900 hover:text-primary transition-colors font-medium">
+            <Link to="/" className="text-gray-900 hover:text-red-600 transition-colors font-medium">
               Home
             </Link>
-            <Link to="/cakes" className="text-gray-900 hover:text-primary transition-colors font-medium">
+            <Link to="/cakes" className="text-gray-900 hover:text-red-600 transition-colors font-medium">
               Cakes
             </Link>
             {/* Only show Custom Orders link for logged-in users */}
             {user && (
-              <Link to="/custom-order" className="text-gray-900 hover:text-primary transition-colors font-medium">
+              <Link to="/custom-order" className="text-gray-900 hover:text-red-600 transition-colors font-medium">
                 Custom Orders
               </Link>
             )}
-            <Link to="/about" className="text-gray-900 hover:text-primary transition-colors font-medium">
+            <Link to="/about" className="text-gray-900 hover:text-red-600 transition-colors font-medium">
               About
             </Link>
-            <Link to="/contact" className="text-gray-900 hover:text-primary transition-colors font-medium">
+            <Link to="/contact" className="text-gray-900 hover:text-red-600 transition-colors font-medium">
               Contact
             </Link>
           </nav>
@@ -104,9 +104,9 @@ export default function Header() {
               <div className="relative" ref={dropdownRef}>
                 <button 
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex items-center space-x-2 text-gray-900 hover:text-primary transition-colors font-medium px-3 py-2 rounded-lg hover:bg-gray-100"
+                  className="flex items-center space-x-2 text-gray-900 hover:text-red-600 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-gray-100"
                 >
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-semibold">
                       {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                     </span>
@@ -170,7 +170,7 @@ export default function Header() {
             ) : (
               <Link 
                 to="/login" 
-                className="text-white bg-primary border-2 border-primary px-4 py-2 rounded-lg hover:bg-white hover:text-primary transition-colors font-medium"
+                className="text-white bg-red-500 border-2 border-red-500 px-4 py-2 rounded-lg hover:bg-white hover:text-red-600 transition-colors font-medium"
               >
                 Login
               </Link>
@@ -179,7 +179,7 @@ export default function Header() {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">
-            <button className="text-text hover:text-primary transition-colors">
+            <button className="text-text hover:text-red-600 transition-colors">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>

@@ -160,7 +160,7 @@ function PremadeOrderCard({ order, onViewDetails }) {
           </div>
           <button
             onClick={() => onViewDetails(order)}
-            className="flex items-center space-x-2 text-primary hover:text-primary-dark transition-colors"
+            className="flex items-center space-x-2 text-red-600 hover:text-red-700 transition-colors"
           >
             <Eye className="w-4 h-4" />
             <span>View Details</span>
@@ -328,7 +328,7 @@ function CustomOrderCard({ order, onViewDetails }) {
           </div>
           <button
             onClick={() => onViewDetails(order)}
-            className="flex items-center space-x-2 text-primary hover:text-primary-dark transition-colors"
+            className="flex items-center space-x-2 text-red-600 hover:text-red-700 transition-colors"
           >
             <Eye className="w-4 h-4" />
             <span>View Details</span>
@@ -866,7 +866,7 @@ export default function MyOrdersPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your orders...</p>
         </div>
       </div>
@@ -883,7 +883,7 @@ export default function MyOrdersPage() {
           </div>
           <button 
             onClick={fetchOrders}
-            className="mt-4 bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark"
+            className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
           >
             Try Again
           </button>
@@ -908,7 +908,7 @@ export default function MyOrdersPage() {
               onClick={() => setOrderType('all')}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 orderType === 'all'
-                  ? 'bg-primary text-white'
+                  ? 'bg-red-500 text-white'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -918,7 +918,7 @@ export default function MyOrdersPage() {
               onClick={() => setOrderType('premade')}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 orderType === 'premade'
-                  ? 'bg-primary text-white'
+                  ? 'bg-red-500 text-white'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -928,7 +928,7 @@ export default function MyOrdersPage() {
               onClick={() => setOrderType('custom')}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 orderType === 'custom'
-                  ? 'bg-primary text-white'
+                  ? 'bg-red-500 text-white'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -965,7 +965,7 @@ export default function MyOrdersPage() {
                   onClick={() => setFilter(tab.key)}
                   className={`py-2 px-1 border-b-2 font-medium text-sm ${
                     filter === tab.key
-                      ? 'border-primary text-primary'
+                      ? 'border-red-500 text-red-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
@@ -993,7 +993,7 @@ export default function MyOrdersPage() {
               <div className="mt-4 space-x-4">
                 <a 
                   href="/cakes" 
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark"
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-500 hover:bg-red-600"
                 >
                   Browse Cakes
                 </a>
