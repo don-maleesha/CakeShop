@@ -170,7 +170,7 @@ None currently reported.
 
 ## 📞 Support
 
-For support, email support@cakeshop.com or create an issue in the repository.
+For support, email bakes.cakeshop@gmail.com or create an issue in the repository.
 
 ---
 
