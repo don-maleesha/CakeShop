@@ -5,7 +5,7 @@ const AboutPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-red-500 to-red-600 text-white py-20">
+      <div className="bg-gradient-to-r from-red-500 to-red-600 text-white py-32">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold mb-4">About CakeShop</h1>
           <p className="text-xl max-w-2xl mx-auto">
