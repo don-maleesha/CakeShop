@@ -24,6 +24,7 @@ import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import MyOrdersPage from './pages/MyOrdersPage.jsx';
 import WishlistPage from './pages/WishlistPage.jsx';
+import AboutPage from './pages/AboutPage.jsx';
 
 import Layout from './Layout.jsx';
 import Users from './admin/Users';
@@ -87,6 +88,7 @@ function App() {
               <Route path="register" element={<RegisterPage />} />
               <Route path="home" element={<HomePage />} />
               <Route path="cakes" element={<CakesPage />} />
+              <Route path="about" element={<AboutPage />} />
               <Route path="product/:productId" element={<ProductDetailPage />} />
               <Route path="cart" element={<CartPage />} />
               <Route path="checkout" element={<CheckoutPage />} />
